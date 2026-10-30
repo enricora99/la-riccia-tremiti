@@ -51,8 +51,8 @@ function polarGrid(rings, segs, maxR) {
   return g;
 }
 
-export function createOcean({ shoreTex, shoreBounds, mobile = false }) {
-  const geo = polarGrid(mobile ? 110 : 170, mobile ? 96 : 160, 16000);
+export function createOcean({ shoreTex, shoreBounds, mobile = false, lite = false }) {
+  const geo = polarGrid(mobile ? 96 : 150, mobile ? 84 : 140, 16000);
   const uniforms = {
     ...U,
     uShore: { value: shoreTex },
@@ -60,6 +60,7 @@ export function createOcean({ shoreTex, shoreBounds, mobile = false }) {
   };
   const mat = new THREE.ShaderMaterial({
     uniforms,
+    side: THREE.DoubleSide,
     vertexShader: /* glsl */ `
       uniform float uTime;
       varying vec3 vWorld; varying vec2 vGrad;
@@ -70,16 +71,17 @@ export function createOcean({ shoreTex, shoreBounds, mobile = false }) {
         wp.y += h; vWorld = wp.xyz; vGrad = g;
         gl_Position = projectionMatrix * viewMatrix * wp;
       }`,
+    defines: { DETAIL: lite ? 4 : 7 },
     fragmentShader: /* glsl */ `
       uniform float uTime, uFogDensity;
-      uniform vec3 uSunDir, uSunColor, uZenith, uHorizon, uDeep, uShallow;
+      uniform vec3 uSunDir, uSunColor, uZenith, uHorizon, uDeep, uShallow, uUnderColor;
       uniform sampler2D uShore; uniform vec4 uShoreBounds;
       varying vec3 vWorld; varying vec2 vGrad;
       ${NOISE_GLSL}
       vec2 detail(vec2 p, float t){
         vec2 g = vec2(0.);
         float a = 0.05, k = 0.9;
-        for(int i=0;i<7;i++){
+        for(int i=0;i<DETAIL;i++){
           float ang = float(i) * 2.399;
           vec2 d = vec2(cos(ang), sin(ang));
           float w = sqrt(9.81 * k);
@@ -94,6 +96,19 @@ export function createOcean({ shoreTex, shoreBounds, mobile = false }) {
         vec2 g = vGrad + detail(vWorld.xz, uTime) * (0.25 + 0.75 * fall);
         vec3 N = normalize(vec3(-g.x, 1., -g.y));
         N = normalize(mix(N, vec3(0,1,0), smoothstep(800., 9000., dist) * 0.8));
+        if (!gl_FrontFacing) {
+          // Vista da sott'acqua: finestra di Snell verso il cielo, riflessione totale ai lati
+          vec3 Nu = normalize(vec3(-g.x * 1.6, 1., -g.y * 1.6));
+          float win = smoothstep(0.66, 0.84, dot(V, Nu));
+          vec3 skyU = mix(uHorizon, uZenith, 0.35) * 1.35;
+          vec3 colU = mix(uUnderColor * 0.85, skyU, win);
+          colU += uSunColor * pow(max(dot(V, normalize(uSunDir + vec3(0., 1.2, 0.))), 0.), 24.) * 2.2 * win;
+          colU = mix(colU, uUnderColor, 1. - exp(-dist * 0.035));
+          gl_FragColor = vec4(colU, 1.);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+          return;
+        }
         vec3 E = -V;
         float fres = 0.02 + 0.98 * pow(1. - max(dot(N, E), 0.), 5.);
         vec3 R = reflect(V, N); R.y = abs(R.y);

@@ -1,119 +1,23 @@
 import * as THREE from 'three';
 import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
-import { fbm, noise2, mulberry } from './noise.js';
+import { noise2, mulberry } from './noise.js';
+import { ISLANDS, SHORE_BOUNDS, islandHeight, heightAt, coastXZ } from './terrain.js';
+import { bakeStatic } from './bake.js';
 
-// Arcipelago stilizzato (metri; x = est, z = sud). Proporzioni ispirate alle isole reali.
-export const ISLANDS = [
-  { key: 'sanDomino', name: 'San Domino', cx: 0, cz: 0, rx: 1300, rz: 720, rot: -0.5, H: 92, cliff: 0.035, seed: 11, kind: 'pine' },
-  { key: 'cretaccio', name: 'Cretaccio', cx: 1330, cz: -640, rx: 240, rz: 115, rot: 0.35, H: 26, cliff: 0.2, seed: 23, kind: 'clay' },
-  { key: 'sanNicola', name: 'San Nicola', cx: 1980, cz: -1060, rx: 820, rz: 265, rot: -0.85, H: 72, cliff: 0.05, seed: 37, kind: 'rock' },
-  { key: 'capraia', name: 'Capraia', cx: 1050, cz: -2380, rx: 920, rz: 460, rot: -0.22, H: 55, cliff: 0.045, seed: 51, kind: 'maquis' },
-];
-
-const smooth = (e0, e1, x) => {
-  const t = Math.min(Math.max((x - e0) / (e1 - e0), 0), 1);
-  return t * t * (3 - 2 * t);
-};
-
-function local(I, x, z) {
-  const dx = x - I.cx, dz = z - I.cz;
-  const c = Math.cos(I.rot), s = Math.sin(I.rot);
-  return [(dx * c + dz * s) / I.rx, (-dx * s + dz * c) / I.rz];
-}
-
-export function islandHeight(I, x, z) {
-  const [u, v] = local(I, x, z);
-  const r = Math.hypot(u, v);
-  if (r > 2.2) return -60;
-  const a = Math.atan2(v, u);
-  const edge = 1 + 0.17 * fbm(Math.cos(a) * 1.5 + I.seed, Math.sin(a) * 1.5, I.seed, 3)
-    + 0.07 * fbm(x * 0.0045, z * 0.0045, I.seed + 5, 3);
-  const q = r / edge;
-  if (q >= 1) return Math.max(-60, -3 - (q - 1) * I.rx * 0.22);
-  const terrain = I.H * (0.72 + 0.3 * fbm(x * 0.0021, z * 0.0021, I.seed + 9, 4)) * (1 - 0.42 * q * q)
-    + 5 * fbm(x * 0.02, z * 0.02, I.seed + 3, 2);
-  const cliff = smooth(1.0, 1.0 - I.cliff, q);
-  return -3 + (terrain + 3) * cliff;
-}
-
-export function heightAt(x, z) {
-  let h = -60;
-  for (const I of ISLANDS) h = Math.max(h, islandHeight(I, x, z));
-  return h;
-}
+export { ISLANDS, islandHeight, heightAt };
 
 export function coastPoint(I, angleDeg, offset) {
-  const a = THREE.MathUtils.degToRad(angleDeg);
-  const dx = Math.cos(a), dz = Math.sin(a);
-  for (let d = Math.max(I.rx, I.rz) * 1.7; d > 0; d -= 4) {
-    if (islandHeight(I, I.cx + dx * d, I.cz + dz * d) > -1.5) {
-      return new THREE.Vector3(I.cx + dx * (d + offset), 0, I.cz + dz * (d + offset));
-    }
-  }
-  return new THREE.Vector3(I.cx, 0, I.cz);
+  const { x, z } = coastXZ(I, angleDeg, offset);
+  return new THREE.Vector3(x, 0, z);
 }
 
-const PAL = {
-  pine: { veg: ['#34502a', '#4d6b2f', '#6b7a3a'], rock: ['#e8dbbd', '#a98d68'], vegAmt: 1 },
-  maquis: { veg: ['#5d6d34', '#7a8041', '#8f8a52'], rock: ['#e2d4b4', '#a68c6a'], vegAmt: 0.85 },
-  rock: { veg: ['#56693a', '#7a7c45', '#8b8550'], rock: ['#eadfc6', '#b09772'], vegAmt: 0.55 },
-  clay: { veg: ['#a98352', '#b98f58', '#c59a60'], rock: ['#cfa46a', '#a8794a'], vegAmt: 0.0 },
-};
-
-function buildIslandMesh(I, cell, mat) {
-  const E = Math.max(I.rx, I.rz) * 1.25;
-  const n = Math.min(300, Math.round((2 * E) / cell));
-  const verts = (n + 1) * (n + 1);
-  const pos = new Float32Array(verts * 3);
-  const hs = new Float32Array(verts);
-  for (let j = 0; j <= n; j++) {
-    for (let i = 0; i <= n; i++) {
-      const k = j * (n + 1) + i;
-      const x = I.cx - E + (2 * E * i) / n, z = I.cz - E + (2 * E * j) / n;
-      const h = islandHeight(I, x, z);
-      hs[k] = h;
-      pos[k * 3] = x; pos[k * 3 + 1] = Math.max(h, -10); pos[k * 3 + 2] = z;
-    }
-  }
-  const idx = [];
-  for (let j = 0; j < n; j++) {
-    for (let i = 0; i < n; i++) {
-      const a = j * (n + 1) + i, b = a + 1, c = a + n + 1, d = c + 1;
-      if (Math.max(hs[a], hs[b], hs[c], hs[d]) < -2.5) continue;
-      idx.push(a, c, b, b, c, d);
-    }
-  }
+function islandMesh({ pos, nrm, col, idx }, mat) {
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-  g.setIndex(idx);
-  g.computeVertexNormals();
-  const nrm = g.attributes.normal.array;
-  const col = new Float32Array(verts * 3);
-  const P = PAL[I.kind];
-  const v0 = new THREE.Color(P.veg[0]), v1 = new THREE.Color(P.veg[1]), v2 = new THREE.Color(P.veg[2]);
-  const r0 = new THREE.Color(P.rock[0]), r1 = new THREE.Color(P.rock[1]);
-  const sand = new THREE.Color('#ece0c6'), wet = new THREE.Color('#8d8070');
-  const c = new THREE.Color(), tmp = new THREE.Color();
-  for (let k = 0; k < verts; k++) {
-    const x = pos[k * 3], h = hs[k], z = pos[k * 3 + 2];
-    const slope = 1 - nrm[k * 3 + 1];
-    const nz = noise2(x * 0.03, z * 0.03, I.seed);
-    // roccia calcarea a strati
-    const streak = noise2(x * 0.09 + z * 0.09, h * 0.02, I.seed + 4);
-    c.copy(r0).lerp(r1, THREE.MathUtils.clamp(0.35 + 0.35 * Math.sin(h * 0.45 + nz * 2.5) + 0.3 * streak, 0, 1));
-    c.multiplyScalar(0.84 + 0.16 * nz);
-    // fascia scura di roccia bagnata e alghe al piede della falesia
-    if (h < 7 && h > -3) c.lerp(wet, smooth(7, 1, h) * 0.7 * Math.min(1, slope * 2));
-    // vegetazione sui pianori
-    const patch = fbm(x * 0.008, z * 0.008, I.seed + 2, 3);
-    const veg = P.vegAmt * smooth(0.34, 0.14, slope) * smooth(3, 12, h) * smooth(-0.62, -0.25, patch);
-    tmp.copy(v0).lerp(v1, 0.5 + 0.5 * patch).lerp(v2, Math.max(0, nz) * 0.6);
-    c.lerp(tmp, veg);
-    // battigia
-    if (h < 2.5) c.lerp(slope < 0.25 ? sand : wet, smooth(2.5, -0.5, h) * 0.8);
-    col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
-  }
+  g.setAttribute('normal', new THREE.BufferAttribute(nrm, 3));
   g.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  g.setIndex(new THREE.BufferAttribute(idx, 1));
+  g.computeBoundingSphere();
   return new THREE.Mesh(g, mat);
 }
 
@@ -134,7 +38,7 @@ function rockGeometry(seed, detail = 2) {
   return g;
 }
 
-export function createArchipelago({ mobile = false } = {}) {
+export function createArchipelago(terrain) {
   const group = new THREE.Group();
   const landMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.96, metalness: 0 });
   const rockMat = new THREE.MeshStandardMaterial({ color: '#c2ab88', roughness: 0.9 });
@@ -143,61 +47,33 @@ export function createArchipelago({ mobile = false } = {}) {
   const rand = mulberry(7);
 
   const meshes = {};
-  for (const I of ISLANDS) {
-    const m = buildIslandMesh(I, mobile ? 15 : 9, landMat);
+  ISLANDS.forEach((I, i) => {
+    const m = islandMesh(terrain.islands[i], landMat);
     meshes[I.key] = m;
     group.add(m);
-  }
+  });
   const [SD, CR, SN, CA] = ISLANDS;
 
   // Maschera profondità per il mare (turchese vicino alle coste, schiuma sulla battigia)
-  const N = mobile ? 256 : 512;
-  const bounds = new THREE.Vector4(-2300, -3700, 5600, 4700);
-  const data = new Uint8Array(N * N);
-  for (let j = 0; j < N; j++) {
-    for (let i = 0; i < N; i++) {
-      const x = bounds.x + ((i + 0.5) / N) * bounds.z;
-      const z = bounds.y + ((j + 0.5) / N) * bounds.w;
-      const h = heightAt(x, z);
-      data[j * N + i] = Math.round(THREE.MathUtils.clamp((h + 60) / 80, 0, 1) * 255);
-    }
-  }
-  const shoreTex = new THREE.DataTexture(data, N, N, THREE.RedFormat, THREE.UnsignedByteType);
+  const N = terrain.shore.size;
+  const bounds = new THREE.Vector4(...SHORE_BOUNDS);
+  const shoreTex = new THREE.DataTexture(terrain.shore.data, N, N, THREE.RedFormat, THREE.UnsignedByteType);
   shoreTex.magFilter = THREE.LinearFilter;
   shoreTex.minFilter = THREE.LinearFilter;
   shoreTex.needsUpdate = true;
 
-  // Pini d'Aleppo
-  const treeCount = mobile ? 900 : 2600;
-  const canopy = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 1), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.95, flatShading: true }), treeCount);
-  const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.14, 0.2, 1, 5), new THREE.MeshStandardMaterial({ color: '#5b4632', roughness: 1 }), treeCount);
+  // Pini d'Aleppo (posizioni calcolate nel worker)
+  const T = terrain.trees;
+  const canopy = new THREE.InstancedMesh(new THREE.IcosahedronGeometry(1, 0), new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.95, flatShading: true }), T.count);
+  const trunk = new THREE.InstancedMesh(new THREE.CylinderGeometry(0.14, 0.2, 1, 5), new THREE.MeshStandardMaterial({ color: '#5b4632', roughness: 1 }), T.count);
+  canopy.instanceMatrix.array.set(T.canopy.subarray(0, T.count * 16));
+  trunk.instanceMatrix.array.set(T.trunk.subarray(0, T.count * 16));
+  canopy.instanceColor = new THREE.InstancedBufferAttribute(T.colors.slice(0, T.count * 3), 3);
+  canopy.computeBoundingSphere(); trunk.computeBoundingSphere();
+  group.add(canopy, trunk);
   const m4 = new THREE.Matrix4(), q = new THREE.Quaternion(), s = new THREE.Vector3(), p = new THREE.Vector3();
   const tc = new THREE.Color();
-  const treeIslands = [[SD, 0.72], [CA, 0.16], [SN, 0.12]];
-  let placed = 0, guard = 0;
-  while (placed < treeCount && guard++ < treeCount * 40) {
-    const r = rand();
-    let acc = 0, I = SD;
-    for (const [isl, w] of treeIslands) { acc += w; if (r <= acc) { I = isl; break; } }
-    const E = Math.max(I.rx, I.rz);
-    const x = I.cx + (rand() * 2 - 1) * E, z = I.cz + (rand() * 2 - 1) * E;
-    const h = islandHeight(I, x, z);
-    if (h < 14) continue;
-    const slope = Math.abs(islandHeight(I, x + 6, z) - h) + Math.abs(islandHeight(I, x, z + 6) - h);
-    if (slope > 4.5) continue;
-    if (fbm(x * 0.008, z * 0.008, I.seed + 2, 3) < -0.15) continue;
-    const th = 3 + rand() * 4.5, cr = 2.6 + rand() * 3;
-    p.set(x, h + th * 0.5 - 0.4, z); s.set(1, th, 1);
-    trunk.setMatrixAt(placed, m4.compose(p, q.identity(), s));
-    p.set(x, h + th + cr * 0.25, z); s.set(cr, cr * (0.42 + rand() * 0.2), cr);
-    q.setFromAxisAngle(new THREE.Vector3(0, 1, 0), rand() * 6.28);
-    canopy.setMatrixAt(placed, m4.compose(p, q, s));
-    tc.set(I.kind === 'pine' ? '#2f4a26' : '#4d5d2e').offsetHSL(0, 0, (rand() - 0.5) * 0.08);
-    canopy.setColorAt(placed, tc);
-    placed++;
-  }
-  canopy.count = trunk.count = placed;
-  group.add(canopy, trunk);
+  let guard = 0;
 
   // Abbazia-fortezza di San Nicola
   const fort = new THREE.Group();
@@ -232,7 +108,7 @@ export function createArchipelago({ mobile = false } = {}) {
     w.rotation.y = yaw - t - Math.PI / 2 + 0.0;
     if (i % 6 === 0) place(new THREE.Mesh(new THREE.CylinderGeometry(6, 7, 18, 10), stoneMat), a, b, 4);
   }
-  group.add(fort);
+  group.add(bakeStatic(fort));
 
   // Casette bianche di San Nicola e San Domino
   const houseCount = 70;

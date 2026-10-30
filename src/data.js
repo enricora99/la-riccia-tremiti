@@ -15,21 +15,21 @@ export const CONTACT = {
 export const waLink = (text) =>
   `https://wa.me/${CONTACT.phoneRaw}?text=${encodeURIComponent(text)}`;
 
-// Colori indicativi: da allineare alle foto reali della flotta.
+// Ogni barca ha la sua foto reale (dal sito laricciadelletremiti.it); i colori servono al modello 3D del viaggio.
 export const FLEET = [
-  { id: 'predator-600', name: 'Predator', length: 6.0, cat: 'Premium', hp: 40, seats: 10, tube: '#2b2f33', hull: '#f4f4f2', canopy: '#1f3b5a' },
-  { id: 'cayman', name: 'Cayman', length: 5.9, cat: 'Premium', hp: 40, seats: 8, tube: '#e9ecef', hull: '#ffffff', canopy: '#2c4a6e' },
-  { id: '2bar', name: '2BAR', length: 5.7, cat: 'Premium', hp: 40, seats: 8, tube: '#1c1f22', hull: '#f2f2f0', canopy: '#e9e4da' },
-  { id: 'predator-570', name: 'Predator', length: 5.7, cat: 'Premium', hp: 40, seats: 8, tube: '#4a5056', hull: '#f4f4f2', canopy: '#1f3b5a' },
-  { id: 'bsc', name: 'BSC', length: 5.5, cat: 'Comfort', hp: 40, seats: 8, tube: '#f1f1ee', hull: '#ffffff', canopy: '#0f5d78' },
-  { id: 'tempest', name: 'Tempest', length: 5.3, cat: 'Comfort', hp: 40, seats: 8, tube: '#8d969e', hull: '#f7f7f5', canopy: '#25384f' },
-  { id: 'marco', name: 'Mar.Co', length: 5.1, cat: 'Comfort', hp: 40, seats: 8, tube: '#1d3557', hull: '#f7f7f5', canopy: '#e9e4da' },
-  { id: 'king', name: 'King', length: 4.9, cat: 'Comfort', hp: 40, seats: 7, tube: '#a9b1b8', hull: '#ffffff', canopy: '#1f3b5a' },
-  { id: 'callegari', name: 'Callegari', length: 4.5, cat: 'Comfort', hp: 40, seats: 2, tube: '#c8462c', hull: '#f7f7f5', canopy: '#e9e4da' },
-  { id: 'grigione', name: 'Grigione', length: 4.2, cat: 'Enjoy', hp: 20, seats: 4, tube: '#5d646b', hull: '#f2f2f0', canopy: '#2c4a6e' },
-  { id: 'lomac', name: 'Lomac', length: 4.2, cat: 'Enjoy', hp: 20, seats: 2, tube: '#dfe3e6', hull: '#ffffff', canopy: '#0f5d78' },
-  { id: 'g43', name: 'Legar G43', length: 4.2, cat: 'Enjoy', hp: 30, seats: 5, tube: '#b8c0c6', hull: '#ffffff', canopy: '#1f3b5a' },
-  { id: 'lomacchino', name: 'Lomacchino', length: 4.0, cat: 'Enjoy', hp: 20, seats: 2, tube: '#e07a2e', hull: '#ffffff', canopy: '#e9e4da' },
+  { id: 'predator-600', name: 'Predator', length: 6.0, cat: 'Premium', hp: 40, seats: 10, photo: 'predator-600m', tube: '#eceeef', hull: '#f4f4f2', canopy: '#f1efe9' },
+  { id: 'cayman', name: 'Cayman', length: 5.9, cat: 'Premium', hp: 40, seats: 8, photo: 'cayman-590m', tube: '#eef0f1', hull: '#ffffff', canopy: '#f1efe9' },
+  { id: '2bar', name: '2BAR', length: 5.7, cat: 'Premium', hp: 40, seats: 8, photo: '2bar-570m', tube: '#eceeef', hull: '#f2f2f0', canopy: '#f1efe9' },
+  { id: 'predator-570', name: 'Predator', length: 5.7, cat: 'Premium', hp: 40, seats: 8, photo: 'predator-570m', tube: '#eceeef', hull: '#f4f4f2', canopy: '#f1efe9' },
+  { id: 'bsc', name: 'BSC', length: 5.5, cat: 'Comfort', hp: 40, seats: 8, photo: 'bsc-550m', tube: '#eef0f1', hull: '#ffffff', canopy: '#f1efe9' },
+  { id: 'tempest', name: 'Tempest', length: 5.3, cat: 'Comfort', hp: 40, seats: 8, photo: 'tempest-530m', tube: '#f1f2f2', hull: '#f7f7f5', canopy: '#1f2328' },
+  { id: 'marco', name: 'Mar.Co', length: 5.1, cat: 'Comfort', hp: 40, seats: 8, photo: 'marco-510m', tube: '#eef0f1', hull: '#f7f7f5', canopy: '#f1efe9' },
+  { id: 'king', name: 'King', length: 4.9, cat: 'Comfort', hp: 40, seats: 7, photo: 'king-nuova-jolly-490m', tube: '#eef0f1', hull: '#ffffff', canopy: '#f1efe9' },
+  { id: 'callegari', name: 'Callegari', length: 4.5, cat: 'Comfort', hp: 40, seats: 2, photo: 'callegari-450m', tube: '#eef0f1', hull: '#f7f7f5', canopy: '#f1efe9' },
+  { id: 'grigione', name: 'Grigione', length: 4.2, cat: 'Enjoy', hp: 20, seats: 4, photo: 'grigione-420m', tube: '#6b7178', hull: '#f2f2f0', canopy: '#f1efe9' },
+  { id: 'lomac', name: 'Lomac', length: 4.2, cat: 'Enjoy', hp: 20, seats: 2, photo: 'lomac-420m', tube: '#eceeef', hull: '#ffffff', canopy: '#f1efe9' },
+  { id: 'g43', name: 'Legar G43', length: 4.2, cat: 'Enjoy', hp: 30, seats: 5, photo: 'g43-420m', tube: '#e6e9eb', hull: '#ffffff', canopy: '#f1efe9' },
+  { id: 'lomacchino', name: 'Lomacchino', length: 4.0, cat: 'Enjoy', hp: 20, seats: 2, photo: 'lomacchino-400m', tube: '#eceeef', hull: '#ffffff', canopy: '#f1efe9' },
 ];
 
 export const CATEGORIES = {
@@ -38,16 +38,16 @@ export const CATEGORIES = {
   Enjoy: 'Piccole e agili, ideali per brevi escursioni.',
 };
 
-// Capitoli del viaggio 3D (la camera e la barca seguono questi tappe)
+// Capitoli del viaggio 3D (la camera e la barca seguono queste tappe); `label` è la voce nella barra laterale
 export const CHAPTERS = [
-  { key: 'hero', kicker: 'Isole Tremiti · dal 2006', title: 'Il mare delle Tremiti,<br><em>al tuo timone.</em>', text: 'Noleggio gommoni senza patente e tour guidati dal porto di San Domino. Scorri e salpa con noi.' },
-  { key: 'porto', kicker: '01 · Porto di San Domino', title: 'Si parte dalla <em>biglietteria 13</em>', text: 'Briefing sulla guida e sui punti da non perdere, giubbotti a bordo, chiavi in mano. Senza patente fino a 40 cv.' },
-  { key: 'matano', kicker: '02 · Cala Matano', title: 'L’acqua cambia colore <em>metro dopo metro</em>', text: 'Ancora a 100 metri dalla costa, tuffo dalla scaletta, doccetta e frigo a bordo. Il resto lo fa il mare.' },
-  { key: 'bue', kicker: '03 · Grotta del Bue Marino', title: 'Le grotte, <em>viste dal mare</em>', text: 'Bue Marino, Viole, Rondinelle: le falesie di San Domino si ammirano dall’esterno, motore al minimo.' },
-  { key: 'architiello', kicker: '04 · L’Architiello', title: 'Un arco scolpito <em>dal vento e dalle onde</em>', text: 'Il giro completo delle isole si fa con calma in circa due ore. Tutto il giorno per fermarti dove vuoi.' },
-  { key: 'elefante', kicker: '05 · Scoglio dell’Elefante', title: 'Un profilo che <em>riconoscerai subito</em>', text: 'Ti indichiamo noi gli angoli nascosti: sono le rotte che Angelica ha imparato da suo padre, pescatore.' },
-  { key: 'capraia', kicker: '06 · Capraia · Area marina protetta', title: 'Sopra la statua di <em>Padre Pio</em>', text: 'Le nostre barche hanno il permesso per entrare nell’area marina di Capraia e arrivare sopra la statua sommersa.' },
-  { key: 'nicola', kicker: '07 · San Nicola', title: 'Attracca, pranza, <em>sali al castello</em>', text: 'Pontili nostri a San Domino e San Nicola. Assistenza gratuita tutto il giorno, rientro entro le 17:00.' },
+  { key: 'hero', label: 'Inizio', title: 'Il mare delle Tremiti,<br><em>al tuo timone.</em>', text: 'Noleggio gommoni senza patente e tour guidati dal porto di San Domino. Scorri e salpa con noi, o guarda il viaggio.' },
+  { key: 'porto', label: 'Porto di San Domino', title: 'Si parte dalla <em>biglietteria 13</em>', text: 'Briefing sulla guida e sui punti da non perdere, giubbotti a bordo, chiavi in mano. Senza patente nautica.' },
+  { key: 'matano', label: 'Cala Matano', title: 'L’acqua cambia colore <em>metro dopo metro</em>', text: 'Ancora lontano dalla riva, tuffo dalla scaletta, doccetta e frigo a bordo. Il resto lo fa il mare.' },
+  { key: 'bue', label: 'Bue Marino', title: 'Le grotte, <em>viste dal mare</em>', text: 'Bue Marino, Viole, Rondinelle: le falesie di San Domino si ammirano dall’esterno, motore al minimo.' },
+  { key: 'architiello', label: 'Architiello', title: 'Un arco scolpito <em>dal vento e dalle onde</em>', text: 'Il giro completo delle isole si fa con calma in un paio d’ore. Hai tutto il giorno per fermarti dove vuoi.' },
+  { key: 'elefante', label: 'Scoglio dell’Elefante', title: 'Un profilo che <em>riconoscerai subito</em>', text: 'Ti indichiamo noi gli angoli nascosti: sono le rotte che Angelica ha imparato da suo padre, pescatore.' },
+  { key: 'capraia', label: 'Padre Pio', title: 'Giù, fino a <em>Padre Pio</em>', text: 'Nell’area marina di Capraia la statua del santo ti aspetta sul fondale, a braccia aperte. Le nostre barche hanno il permesso per arrivarci sopra: maschera e tuffo.' },
+  { key: 'nicola', label: 'San Nicola', title: 'Attracca, pranza, <em>sali al castello</em>', text: 'Pontili nostri a San Domino e San Nicola, assistenza gratuita tutto il giorno. Si rientra nel pomeriggio.' },
 ];
 
 export const FAQ = [

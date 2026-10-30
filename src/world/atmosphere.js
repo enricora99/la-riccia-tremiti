@@ -10,6 +10,7 @@ export const U = {
   uDeep: { value: new THREE.Color('#0b4a66') },
   uShallow: { value: new THREE.Color('#33c6c0') },
   uFogDensity: { value: 0.00004 },
+  uUnderColor: { value: new THREE.Color('#0f6382') },
 };
 
 // Momenti della giornata: 0 mattino, 0.45 mezzogiorno, 0.75 pomeriggio, 1 ora dorata
@@ -41,6 +42,8 @@ export function applyTimeOfDay(tod, extra = {}) {
   lerpColor(U.uDeep.value, a.deep, b.deep, f);
   lerpColor(U.uShallow.value, a.shal, b.shal, f);
   U.uFogDensity.value = THREE.MathUtils.lerp(a.fog, b.fog, f) * (extra.fogScale ?? 1);
+  // colore dell'acqua vista da sotto: blu profondo schiarito dal turchese dei bassi fondali
+  U.uUnderColor.value.copy(U.uDeep.value).lerp(U.uShallow.value, 0.32).multiplyScalar(0.55 + 0.45 * THREE.MathUtils.clamp(Math.sin(elev) * 2.5, 0, 1));
   return { elev };
 }
 

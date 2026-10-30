@@ -4,6 +4,8 @@ import { createOcean, waveHeight } from './ocean.js';
 import { createArchipelago, heightAt, ISLANDS } from './islands.js';
 import { createBoat } from './boat.js';
 import { createWake } from './wake.js';
+import { createUnderwater } from './underwater.js';
+import { bakeStatic } from './bake.js';
 import { FLEET } from '../data.js';
 
 const UP = new THREE.Vector3(0, 1, 0);
@@ -23,10 +25,11 @@ function createGulls(n) {
   const wingGeo = new THREE.BufferGeometry();
   wingGeo.setAttribute('position', new THREE.Float32BufferAttribute([0, 0, 0.18, 0, 0, -0.12, 0.85, 0.05, -0.02, 0.85, 0.05, -0.02, 0, 0, -0.12, 1.45, -0.08, -0.22], 3));
   wingGeo.computeVertexNormals();
+  const bodyGeo = new THREE.CapsuleGeometry(0.09, 0.45, 3, 6);
   const birds = [];
   for (let i = 0; i < n; i++) {
     const b = new THREE.Group();
-    const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.45, 3, 6), matW);
+    const body = new THREE.Mesh(bodyGeo, matW);
     body.rotation.x = Math.PI / 2;
     const l = new THREE.Mesh(wingGeo, i % 3 ? matW : matB), r = new THREE.Mesh(wingGeo, i % 3 ? matW : matB);
     r.scale.x = -1;
@@ -55,15 +58,20 @@ function createGulls(n) {
   };
 }
 
-export function createWorld(canvas, { mobile = false, reducedMotion = false } = {}) {
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, mobile ? 1.5 : 1.75));
+export function createWorld(canvas, { mobile = false, reducedMotion = false, terrain, onUnderwater } = {}) {
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !mobile, powerPreference: 'high-performance' });
+  // Risoluzione adattiva: parte dal massimo sostenibile e scende se i frame rallentano
+  const maxDpr = Math.min(window.devicePixelRatio, mobile ? 1.3 : 1.5);
+  let dpr = maxDpr;
+  renderer.setPixelRatio(dpr);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 0.92;
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.FogExp2(U.uHorizon.value.clone(), U.uFogDensity.value);
-  const camera = new THREE.PerspectiveCamera(mobile ? 58 : 42, 1, 0.4, 40000);
+  const airFog = new THREE.FogExp2(U.uHorizon.value.clone(), U.uFogDensity.value);
+  const waterFog = new THREE.FogExp2(U.uUnderColor.value.clone(), 0.05);
+  scene.fog = airFog;
+  const camera = new THREE.PerspectiveCamera(mobile ? 58 : 42, 1, 0.3, 40000);
 
   const sky = createSky();
   scene.add(sky);
@@ -71,30 +79,39 @@ export function createWorld(canvas, { mobile = false, reducedMotion = false } = 
   const hemi = new THREE.HemisphereLight('#bcd6ec', '#6b5a45', 0.85);
   scene.add(sun, sun.target, hemi);
 
-  const world = createArchipelago({ mobile });
+  const world = createArchipelago(terrain);
   scene.add(world.group);
-  const ocean = createOcean({ shoreTex: world.shoreTex, shoreBounds: world.shoreBounds, mobile });
+  const ocean = createOcean({ shoreTex: world.shoreTex, shoreBounds: world.shoreBounds, mobile, lite: mobile });
   scene.add(ocean);
 
-  // Ambiente PBR generato dal cielo procedurale
+  // Ambiente PBR dal cielo procedurale: poche mappe piccole, generate una volta e riusate
   const pmrem = new THREE.PMREMGenerator(renderer);
   const envScene = new THREE.Scene();
   envScene.add(createSky());
-  let envRT = null, envTod = -1;
+  const envCache = new Map();
+  let envKey = -1;
   function refreshEnv(tod) {
-    if (Math.abs(tod - envTod) < 0.025) return;
-    envTod = tod;
-    const next = pmrem.fromScene(envScene, 0, 0.1, 100);
-    if (envRT) envRT.dispose();
-    envRT = next;
-    scene.environment = envRT.texture;
+    const key = Math.round(tod * 6);
+    if (key === envKey) return;
+    envKey = key;
+    if (!envCache.has(key)) {
+      const keep = { d: U.uSunDir.value.clone(), s: U.uSunColor.value.clone(), z: U.uZenith.value.clone(), h: U.uHorizon.value.clone(), deep: U.uDeep.value.clone(), sh: U.uShallow.value.clone(), f: U.uFogDensity.value, u: U.uUnderColor.value.clone() };
+      applyTimeOfDay(key / 6);
+      envCache.set(key, pmrem.fromScene(envScene, 0, 0.1, 100, { size: 64 }));
+      U.uSunDir.value.copy(keep.d); U.uSunColor.value.copy(keep.s); U.uZenith.value.copy(keep.z); U.uHorizon.value.copy(keep.h);
+      U.uDeep.value.copy(keep.deep); U.uShallow.value.copy(keep.sh); U.uFogDensity.value = keep.f; U.uUnderColor.value.copy(keep.u);
+    }
+    scene.environment = envCache.get(key).texture;
   }
 
-  // Barca protagonista + flotta ormeggiata al pontile
+  // Barca protagonista + flotta ormeggiata al pontile (geometrie fuse: poche draw call)
   const hero = createBoat(FLEET[0]);
+  bakeStatic(hero, [hero.userData.propeller]);
   scene.add(hero);
-  const moored = world.moorings.map((m, i) => {
-    const b = createBoat(FLEET[(i * 2 + 1) % FLEET.length], { detail: 0 });
+  // la flotta al pontile è quasi tutta bianca: un solo modello fuso, clonato (geometrie condivise)
+  const mooredModel = bakeStatic(createBoat(FLEET[4], { detail: 0 }));
+  const moored = world.moorings.map((m) => {
+    const b = mooredModel.clone();
     b.position.copy(m.pos);
     b.userData.yaw = m.yaw;
     scene.add(b);
@@ -102,8 +119,15 @@ export function createWorld(canvas, { mobile = false, reducedMotion = false } = 
   });
   const wake = createWake(mobile ? 60 : 90);
   scene.add(wake.mesh);
-  const gulls = createGulls(mobile ? 7 : 14);
+  const gulls = createGulls(mobile ? 6 : 10);
   scene.add(gulls.group);
+
+  // Il fondale di Capraia con la statua di Padre Pio
+  const CA = ISLANDS[3];
+  const statuePos = world.pois.padrePio.clone();
+  const statueFront = statuePos.clone().sub(new THREE.Vector3(CA.cx, 0, CA.cz)).setY(0).normalize();
+  const under = createUnderwater({ statuePos, front: statueFront, mobile });
+  scene.add(under.group);
 
   // Rotta del viaggio
   const curve = new THREE.CatmullRomCurve3(world.route, false, 'catmullrom', 0.5);
@@ -114,8 +138,10 @@ export function createWorld(canvas, { mobile = false, reducedMotion = false } = 
   const step = 1 / (N - 0.5);
   const anchors = chapterT.map((_, i) => i * step);
   const segOf = (p) => Math.min(Math.floor(p / step), N - 1);
+  const nearestChapter = (p) => Math.min(Math.round(p / step), N - 1);
 
   function boatTargetT(p) {
+    if (reducedMotion) return chapterT[nearestChapter(p)];
     const seg = segOf(p);
     if (seg >= N - 1) return chapterT[N - 1];
     const f = (p - anchors[seg]) / step;
@@ -144,6 +170,27 @@ export function createWorld(canvas, { mobile = false, reducedMotion = false } = 
     const pos = B().addScaledVector(away, dist).addScaledVector(UP, h + 2 * Math.sin(lt * Math.PI));
     return [pos, B().lerp(poi, 0.4).setY(poiH * 0.5)];
   }
+  // Tuffo: dalla boa in superficie giù fino al volto della statua, poi risalita
+  const sideOfStatue = new THREE.Vector3(-statueFront.z, 0, statueFront.x);
+  function diveShot(lt) {
+    const S = statuePos;
+    // in superficie si segue la barca che arriva alla boa, poi giù
+    const above = B().addScaledVector(state.fwd, -14).addScaledVector(sideOfStatue, 3).setY(3.4);
+    const aboveT = B().lerp(S, 0.6).setY(-2);
+    if (lt < 0.36) return [above, aboveT];
+    const orbit = (lt - 0.5) * 0.8;
+    const dir = statueFront.clone().applyAxisAngle(UP, orbit);
+    const low = S.clone().addScaledVector(dir, 6.2).setY(under.headY - 2.1);
+    const lowT = S.clone().setY(under.headY - 0.2);
+    const k = THREE.MathUtils.smoothstep(lt, 0.36, 0.47);
+    const pos = above.lerp(low, k), tgt = aboveT.lerp(lowT, k);
+    const r = THREE.MathUtils.smoothstep(lt, 0.6, 0.8);
+    if (r > 0) {
+      pos.addScaledVector(dir, r * 18).setY(THREE.MathUtils.lerp(pos.y, 7, r));
+      tgt.setY(THREE.MathUtils.lerp(tgt.y, 1, r));
+    }
+    return [pos, tgt];
+  }
   const shots = [
     shotHero,
     (lt) => [B().addScaledVector(state.right, -state.side * (17 - lt * 4)).addScaledVector(state.fwd, -12 + lt * 6).addScaledVector(UP, 6.5 - lt * 3), B().addScaledVector(state.right, state.side * 14).addScaledVector(state.fwd, 4).addScaledVector(UP, 2.5)],
@@ -152,23 +199,28 @@ export function createWorld(canvas, { mobile = false, reducedMotion = false } = 
     // la barca in primo piano, il punto d'interesse sullo sfondo, con una lenta carrellata laterale
     (lt) => poiShot(world.pois.arch, lt, 24, 4, 5),
     (lt) => poiShot(world.pois.elephant, lt, 17, 3, 14),
-    (lt) => [B().addScaledVector(UP, 48 + lt * 40).addScaledVector(state.right, -state.side * (30 + lt * 20)), B().addScaledVector(state.right, state.side * 45)],
+    diveShot,
     (lt) => {
       const away = B().sub(world.fortress).setY(0).normalize();
       const pos = B().addScaledVector(away, 38 + lt * 110).addScaledVector(state.right, 10).addScaledVector(UP, 9 + lt * 45);
       return [pos, B().lerp(world.fortress, 0.35 + lt * 0.35).setY(10 + lt * 20)];
     },
   ];
+  const DIVE = shots.indexOf(diveShot);
 
   const camPos = v(), camTgt = v();
   let camInit = false;
   let introK = 1;
 
   function desiredCamera(p, time) {
+    if (reducedMotion) {
+      const i = nearestChapter(p);
+      return shots[i](i === N - 1 ? 0.75 : 0.5, time);
+    }
     const seg = segOf(p);
     if (seg >= N - 1) return shots[N - 1](0.5 + THREE.MathUtils.clamp((p - anchors[N - 1]) / (step * 0.5), 0, 1) * 0.5, time);
     const f = THREE.MathUtils.clamp((p - anchors[seg]) / step, 0, 1);
-    const bw = seg === 0 ? 0.5 : 0.22;
+    const bw = seg === 0 ? 0.5 : seg === DIVE - 1 || seg === DIVE ? 0.14 : 0.22;
     const w = THREE.MathUtils.smoothstep(f, 0.5 - bw, 0.5 + bw);
     const ltA = 0.5 + f * 0.5, ltB = f * 0.5;
     const [pa, ta] = shots[seg](ltA, time);
@@ -204,40 +256,69 @@ export function createWorld(canvas, { mobile = false, reducedMotion = false } = 
   resize();
 
   const timer = new THREE.Timer();
-  let active = true, raf = 0, time = 0;
+  let active = true, time = 0, underwater = false, snap = false, lastChapter = 0;
   const tmpF = v();
+  let slowAcc = 0, fastAcc = 0;
+
+  function adaptResolution(rawDt) {
+    if (rawDt > 0.25) return; // scheda in background o pausa: non conta
+    if (rawDt > 1 / 40) { slowAcc += rawDt; fastAcc = 0; } else if (rawDt < 1 / 58) { fastAcc += rawDt; slowAcc = Math.max(0, slowAcc - rawDt * 0.5); }
+    if (slowAcc > 1.2 && dpr > 0.6) { dpr = Math.max(0.6, dpr - 0.15); renderer.setPixelRatio(dpr); resize(); slowAcc = 0; }
+    else if (fastAcc > 5 && dpr < maxDpr) { dpr = Math.min(maxDpr, dpr + 0.1); renderer.setPixelRatio(dpr); resize(); fastAcc = 0; }
+  }
+
+  function setUnderwater(u) {
+    if (u === underwater) return;
+    underwater = u;
+    scene.fog = u ? waterFog : airFog;
+    scene.background = u ? waterFog.color : null;
+    sky.visible = !u;
+    under.group.visible = u;
+    onUnderwater?.(u);
+  }
 
   function frame() {
-    raf = requestAnimationFrame(frame);
+    requestAnimationFrame(frame);
     if (!active) return;
     timer.update();
-    const dt = Math.min(timer.getDelta(), 0.05);
+    const rawDt = timer.getDelta();
+    const dt = Math.min(rawDt, 0.05);
+    adaptResolution(rawDt);
     time += dt;
     U.uTime.value = time;
 
     const tod = THREE.MathUtils.clamp(state.p * 1.02, 0, 1);
     applyTimeOfDay(tod);
-    scene.fog.color.copy(U.uHorizon.value);
-    scene.fog.density = U.uFogDensity.value * 0.9;
+    airFog.color.copy(U.uHorizon.value);
+    airFog.density = U.uFogDensity.value * 0.9;
+    waterFog.color.copy(U.uUnderColor.value);
     sun.position.copy(U.uSunDir.value).multiplyScalar(1000).add(camera.position);
     sun.target.position.copy(camera.position);
     sun.color.copy(U.uSunColor.value);
     sun.intensity = 1.2 + 1.6 * Math.min(1, U.uSunDir.value.y * 2.5);
     hemi.color.copy(U.uZenith.value).lerp(U.uHorizon.value, 0.4);
+    // sott'acqua la luce arriva filtrata e più debole
+    if (underwater) { sun.intensity *= 0.45; hemi.intensity = 0.45; scene.environmentIntensity = 0.3; } else { hemi.intensity = 0.85; scene.environmentIntensity = 1; }
     refreshEnv(tod);
+
+    // Movimento ridotto: niente carrellate, si passa da una tappa all'altra con uno stacco
+    const chapterNow = nearestChapter(state.p);
+    if (reducedMotion && chapterNow !== lastChapter) snap = true;
+    lastChapter = chapterNow;
 
     // Simulazione barca
     const target = boatTargetT(state.p);
     const prev = state.pos.clone();
-    state.t += (target - state.t) * (1 - Math.exp(-dt * 0.9));
+    if (snap) state.t = target;
+    else state.t += (target - state.t) * (1 - Math.exp(-dt * 0.9));
     state.pos.copy(curve.getPoint(THREE.MathUtils.clamp(state.t, 0, 1)));
-    const instSpeed = prev.distanceTo(state.pos) / Math.max(dt, 1e-3);
+    const instSpeed = snap ? 0 : prev.distanceTo(state.pos) / Math.max(dt, 1e-3);
     state.speed += (instSpeed - state.speed) * (1 - Math.exp(-dt * 3));
-    if (state.speed > 0.3) {
+    if (state.speed > 0.3 || snap) {
       tmpF.copy(curve.getTangent(THREE.MathUtils.clamp(state.t, 0, 1))).setY(0).normalize();
       if (target < state.t) tmpF.negate();
-      const newYaw = lerpAngle(state.yaw, Math.atan2(tmpF.x, tmpF.z), 1 - Math.exp(-dt * 2.5));
-      state.yawRate = (newYaw - state.yaw) / Math.max(dt, 1e-3);
+      const newYaw = snap ? Math.atan2(tmpF.x, tmpF.z) : lerpAngle(state.yaw, Math.atan2(tmpF.x, tmpF.z), 1 - Math.exp(-dt * 2.5));
+      state.yawRate = snap ? 0 : (newYaw - state.yaw) / Math.max(dt, 1e-3);
       state.yaw = newYaw;
     } else state.yawRate *= 0.9;
     state.fwd.set(Math.sin(state.yaw), 0, Math.cos(state.yaw));
@@ -274,7 +355,7 @@ export function createWorld(canvas, { mobile = false, reducedMotion = false } = 
       dp.copy(high.lerp(dp, k));
       dtg.copy(ht0.lerp(dtg, k));
     }
-    // Composizione: la barca a destra (desktop) o in alto (mobile), il testo resta libero
+    // Composizione: il soggetto a destra (desktop) o in alto (mobile), il testo resta libero
     const framing = THREE.MathUtils.smoothstep(state.p, 0.06, 0.13) * (1 - THREE.MathUtils.smoothstep(state.p, 0.86, 0.95));
     if (framing > 0) {
       const look = tmpF.copy(dtg).sub(dp);
@@ -284,8 +365,8 @@ export function createWorld(canvas, { mobile = false, reducedMotion = false } = 
       if (width / height > 1) dtg.addScaledVector(camRight, -dist * 0.2 * framing);
       else dtg.addScaledVector(UP, -dist * 0.14 * framing);
     }
-    if (!camInit) { camPos.copy(dp); camTgt.copy(dtg); camInit = true; }
-    const k = 1 - Math.exp(-dt * (reducedMotion ? 6 : 3.2));
+    if (!camInit || snap) { camPos.copy(dp); camTgt.copy(dtg); camInit = true; }
+    const k = 1 - Math.exp(-dt * 3.2);
     camPos.lerp(dp, k);
     camTgt.lerp(dtg, k);
     camera.position.copy(camPos);
@@ -293,20 +374,42 @@ export function createWorld(canvas, { mobile = false, reducedMotion = false } = 
       camera.position.x += Math.sin(time * 0.9) * 0.12;
       camera.position.y += Math.sin(time * 1.3) * 0.08;
     }
-    const minY = Math.max(waveHeight(camera.position.x, camera.position.z, time) + 0.9, heightAt(camera.position.x, camera.position.z) + 8);
-    if (camera.position.y < minY) camera.position.y = minY;
+    const wave = waveHeight(camera.position.x, camera.position.z, time);
+    if (dp.y > 0 && camPos.y > 0) {
+      // sopra l'acqua: mai a pelo d'onda né dentro la costa
+      const minY = Math.max(wave + 0.9 * THREE.MathUtils.smoothstep(camPos.y, 0, 2), heightAt(camera.position.x, camera.position.z) + 8);
+      if (camera.position.y < minY) camera.position.y = minY;
+    } else {
+      const floor = Math.max(heightAt(camera.position.x, camera.position.z), under.floorAt(camera.position.x, camera.position.z));
+      if (camera.position.y < floor + 1.2) camera.position.y = floor + 1.2;
+    }
     camera.lookAt(camTgt);
+    setUnderwater(camera.position.y < wave - 0.05);
+    if (underwater) under.update(time, camera, U.uSunDir.value, dpr * height / 900);
+    snap = false;
 
     renderer.render(scene, camera);
   }
 
-  if (import.meta.env.DEV) window.__riccia = { state, camera, world, camPos, camTgt };
+  if (import.meta.env.DEV) window.__riccia = { state, camera, world, camPos, camTgt, renderer, get dpr() { return dpr; } };
 
   return {
     renderer,
+    // Compila gli shader senza bloccare la pagina, poi parte il ciclo di rendering
+    async prepare() {
+      applyTimeOfDay(0);
+      refreshEnv(0);
+      const [p0, t0] = desiredCamera(0, 0);
+      camera.position.copy(p0); camera.lookAt(t0);
+      under.group.visible = true;
+      try { await renderer.compileAsync(scene, camera); } catch { /* compila al primo frame */ }
+      under.group.visible = false;
+    },
     start() { frame(); },
     setProgress(p) { state.p = THREE.MathUtils.clamp(p, 0, 1); },
     setActive(a) { if (a && !active) timer.reset?.(); active = a; },
+    setReducedMotion(r) { reducedMotion = r; snap = true; },
+    get chapter() { return nearestChapter(state.p); },
     playIntro(gsap, duration = 4.2) {
       introK = 0;
       const o = { k: 0 };
@@ -314,5 +417,21 @@ export function createWorld(canvas, { mobile = false, reducedMotion = false } = 
     },
     resize,
     anchors,
+    // Fotogramma statico dell'apertura (serve a generare il poster che appare prima del 3D)
+    renderStill(w, h) {
+      renderer.setPixelRatio(1);
+      renderer.setSize(w, h, false);
+      camera.aspect = w / h;
+      camera.fov = w / h < 0.8 ? 62 : mobile ? 55 : 42;
+      camera.updateProjectionMatrix();
+      applyTimeOfDay(0);
+      refreshEnv(0);
+      U.uTime.value = 0;
+      const [p0, t0] = desiredCamera(0, 0);
+      camera.position.copy(p0);
+      camera.lookAt(t0);
+      renderer.render(scene, camera);
+      return canvas.toDataURL('image/webp', 0.82);
+    },
   };
 }
