@@ -36,7 +36,7 @@ $('#chapters').innerHTML = CHAPTERS.map((c, i) => `
   <article class="chapter${i === 0 ? ' is-hero' : ''}" data-i="${i}">
     ${i === 0 ? `<h1>${c.title}</h1>` : `<h2>${c.title}</h2>`}
     <p class="text">${c.text}</p>
-    ${i === 0 ? `<div class="hero-ctas"><a class="btn btn-cta" href="#flotta">Scegli la tua barca</a><a class="btn btn-ghost" data-wa="Ciao Angelica! Vorrei prenotare un gommone alle Tremiti." target="_blank" rel="noopener">Prenota su WhatsApp</a></div>` : ''}
+    ${i === 0 ? `<div class="hero-ctas"><a class="btn btn-cta" href="#flotta">Scegli la tua barca</a><a class="btn btn-ghost" data-wa="Ciao Angelica! Vorrei prenotare un gommone alle Tremiti." target="_blank" rel="noopener">Prenota su WhatsApp</a></div><a class="hero-app" href="#app"><span class="tag-preview">anteprima</span> Novità: l’app per orientarti in mare <span aria-hidden="true">→</span></a>` : ''}
   </article>`).join('');
 document.documentElement.style.setProperty('--chapters', CHAPTERS.length);
 
@@ -360,7 +360,7 @@ function revealPage() {
   const tl = gsap.timeline();
   tl.to('#loader', { opacity: 0, duration: reduced ? 0.2 : 0.6, ease: 'power2.out', onComplete: () => { $('#loader').remove(); document.body.classList.remove('is-loading'); lenis?.start(); } });
   if (reduced) return;
-  tl.from(chapterEls[0].querySelectorAll('h1, .text, .hero-ctas'), { opacity: 0, y: 40, duration: 1.3, stagger: 0.12, ease: 'power4.out' }, 0.25);
+  tl.from(chapterEls[0].querySelectorAll('h1, .text, .hero-ctas, .hero-app'), { opacity: 0, y: 40, duration: 1.3, stagger: 0.12, ease: 'power4.out' }, 0.25);
   tl.from(['.site-header', '.journey-ctrl'], { opacity: 0, y: -16, duration: 1, ease: 'power3.out', clearProps: 'opacity,transform' }, 0.45);
 }
 const posterReady = new Promise((res) => {

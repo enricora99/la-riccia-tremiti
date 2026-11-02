@@ -132,6 +132,10 @@ body:has(.alert) .fabs { top: auto; bottom: calc(var(--safe-bottom) + 190px); }
 body.is-demo .target { bottom: calc(var(--safe-bottom) + 140px); }
 .demo .chip { padding: 4px 10px; }
 
+/* Anteprima */
+.preview-tag { display: inline-block; margin: 0 0 12px; padding: 4px 12px; border-radius: 99px; background: var(--pink); color: #fff; font-size: .75rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+.preview-box { border: 2px dashed var(--pink); border-radius: 12px; padding: 10px 12px; color: var(--ink); }
+
 /* Primo avvio */
 .onboard { position: fixed; inset: 0; z-index: 50; background: var(--sea); display: grid; place-items: center; padding: 20px; overflow-y: auto; }
 .onboard-card { width: min(440px, 100%); background: var(--paper); border-radius: 24px; padding: 24px 22px; text-align: center; }
