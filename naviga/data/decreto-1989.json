@@ -1,0 +1,32 @@
+{
+  "fonte": "D.I. 14/07/1989, art. 4 — Istituzione della riserva naturale marina \"Isole Tremiti\"",
+  "url": "https://mase.gov.it/sites/default/files/dm_14_07_1989_amp_tremiti.pdf",
+  "verificato": "Vertici ricontrollati uno per uno sul testo del decreto (GU) il 2026-11-02. Datum non indicato nel decreto: trattati come WGS84.",
+  "vertici": {
+    "a": { "lat": "42°08'16\"N", "lon": "15°30'00\"E" },
+    "b": { "lat": "42°08'30\"N", "lon": "15°30'30\"E" },
+    "c": { "lat": "42°08'24\"N", "lon": "15°32'00\"E" },
+    "d": { "lat": "42°07'30\"N", "lon": "15°31'30\"E" },
+    "e": { "lat": "42°05'30\"N", "lon": "15°29'00\"E" },
+    "f": { "lat": "42°05'48\"N", "lon": "15°28'06\"E" },
+    "g": { "lat": "42°06'21\"N", "lon": "15°28'09\"E" },
+    "h": { "lat": "42°06'42\"N", "lon": "15°28'12\"E" },
+    "i": { "lat": "42°07'30\"N", "lon": "15°28'18\"E" },
+    "l": { "lat": "42°07'57\"N", "lon": "15°30'26\"E", "nota": "nel testo GU stampato come \"1)\"" },
+    "m": { "lat": "42°07'58\"N", "lon": "15°30'48\"E" },
+    "n": { "lat": "42°06'21\"N", "lon": "15°28'37\"E" },
+    "o": { "lat": "42°06'42\"N", "lon": "15°28'32\"E" },
+    "A": { "lat": "42°13'42\"N", "lon": "15°44'30\"E" },
+    "B": { "lat": "42°13'36\"N", "lon": "15°45'20\"E" },
+    "C": { "lat": "42°12'54\"N", "lon": "15°45'00\"E" },
+    "D": { "lat": "42°13'00\"N", "lon": "15°44'12\"E" },
+    "E": { "lat": "42°13'30\"N", "lon": "15°44'00\"E" }
+  },
+  "poligoni": {
+    "perimetro": { "vertici": ["a", "b", "c", "d", "e", "f", "g", "h", "i"], "testo": "dalla congiungente i seguenti punti a) … i)" },
+    "zonaA": { "vertici": ["A", "B", "C", "D", "E"], "testo": "Zona A di riserva integrale: il tratto di mare che circonda l'isola di Pianosa, delimitato dai punti da A) ad E)" },
+    "zonaB_caprara": { "vertici": ["l", "a", "b", "c", "d", "m"], "testo": "la zona di mare dell'isola di Caprara delimitata dalla congiungente i seguenti punti: l), a), b), c), d), ed m)" },
+    "zonaB_sandomino": { "vertici": ["n", "g", "h", "o"], "testo": "la zona di mare dell'isola di S. Domino delimitata dalla congiungente i seguenti punti n), g), h), ed o)" },
+    "zonaC": { "testo": "il residuo tratto di mare, così come delimitato nel primo capoverso, circondante l'isola di S. Domino e l'isola di Caprara e non ricompreso nella zona B, nonché quello circondante l'isola di S. Nicola" }
+  }
+}

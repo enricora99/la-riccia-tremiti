@@ -1,0 +1,90 @@
+[
+  {
+    "id": "porto-san-domino",
+    "nome": { "it": "Porto di San Domino", "en": "San Domino harbour" },
+    "tipo": "porto",
+    "descrizione": { "it": "Punto di rientro: biglietteria 13 de La Riccia.", "en": "Return point: La Riccia, ticket office no. 13." },
+    "lat": 42.12043,
+    "lon": 15.49742,
+    "accessoNoleggio": "consentito",
+    "verificato": false,
+    "fonteCoordinate": "OpenStreetMap, nodo 3060655247 (Porto di San Domino)"
+  },
+  {
+    "id": "cala-matano",
+    "nome": { "it": "Cala Matano", "en": "Cala Matano" },
+    "tipo": "cala",
+    "descrizione": { "it": "Acqua turchese e fondale chiaro, sulla costa est di San Domino.", "en": "Turquoise water over a light seabed, on the east coast of San Domino." },
+    "lat": 42.11543,
+    "lon": 15.49328,
+    "accessoNoleggio": "consentito",
+    "verificato": false,
+    "fonteCoordinate": "OpenStreetMap, nodo 12946639732 (cala Matano)"
+  },
+  {
+    "id": "scoglio-elefante",
+    "nome": { "it": "Scoglio dell'Elefante", "en": "Elephant Rock" },
+    "tipo": "scoglio",
+    "descrizione": { "it": "Il profilo più famoso di San Domino, con la proboscide nell'acqua.", "en": "San Domino's most famous profile, with its trunk in the water." },
+    "lat": 42.11088,
+    "lon": 15.49234,
+    "accessoNoleggio": "consentito",
+    "verificato": false,
+    "fonteCoordinate": "OpenStreetMap, nodo 10984162769 (Scoglio dell'Elefante)"
+  },
+  {
+    "id": "grotta-viole",
+    "nome": { "it": "Grotta delle Viole", "en": "Violet Cave" },
+    "tipo": "grotta",
+    "descrizione": { "it": "Riflessi viola sulla roccia calcarea. Da vedere dall'esterno.", "en": "Violet reflections on the limestone. View from outside only." },
+    "lat": 42.10511,
+    "lon": 15.48452,
+    "accessoNoleggio": "solo esterno",
+    "verificato": false,
+    "fonteCoordinate": "OpenStreetMap, nodo 3060655251 (Grotta delle Viole)"
+  },
+  {
+    "id": "grotta-bue-marino",
+    "nome": { "it": "Grotta del Bue Marino", "en": "Bue Marino Cave" },
+    "tipo": "grotta",
+    "descrizione": { "it": "La grande grotta della costa sud-ovest di San Domino. Da vedere dall'esterno.", "en": "The large cave on San Domino's south-west coast. View from outside only." },
+    "lat": 42.1073,
+    "lon": 15.47739,
+    "accessoNoleggio": "solo esterno",
+    "verificato": false,
+    "fonteCoordinate": "OpenStreetMap, nodo 3060655250 (Grotta del Bue Marino)"
+  },
+  {
+    "id": "grotta-rondinelle",
+    "nome": { "it": "Grotta delle Rondinelle", "en": "Swallows' Cave" },
+    "tipo": "grotta",
+    "descrizione": { "it": "Rondini e falesie a picco sul mare. Da vedere dall'esterno.", "en": "Swallows and sheer cliffs. View from outside only." },
+    "lat": 42.11373,
+    "lon": 15.48002,
+    "accessoNoleggio": "solo esterno",
+    "verificato": false,
+    "fonteCoordinate": "OpenStreetMap, nodo 3060655268 (Grotta delle Rondinelle)"
+  },
+  {
+    "id": "architiello",
+    "nome": { "it": "L'Architiello", "en": "The Architiello arch" },
+    "tipo": "altro",
+    "descrizione": { "it": "Arco di roccia sulla costa ovest di San Domino, vicino a Punta Secca.", "en": "Rock arch on San Domino's west coast, near Punta Secca." },
+    "lat": 42.11141,
+    "lon": 15.47723,
+    "accessoNoleggio": "consentito",
+    "verificato": false,
+    "fonteCoordinate": "OpenStreetMap, nodo 7904952912 (L'Architiello, natural=arch). Esiste anche un \"Architiello\" su Caprara (nodo 3060668641): da confermare quale si intende."
+  },
+  {
+    "id": "bagno-padre-pio",
+    "nome": { "it": "Bagno sopra Padre Pio", "en": "Swim above Padre Pio" },
+    "tipo": "altro",
+    "descrizione": { "it": "Sosta nell'area marina di Caprara, sopra la statua sommersa del santo.", "en": "Stop in the Caprara marine area, above the submerged statue of the saint." },
+    "lat": 42.13247,
+    "lon": 15.51264,
+    "accessoNoleggio": "consentito",
+    "verificato": false,
+    "fonteCoordinate": "OpenStreetMap, nodo 5037693059 (Statua Padre Pio)"
+  }
+]

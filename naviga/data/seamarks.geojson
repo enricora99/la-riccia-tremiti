@@ -1,0 +1,277 @@
+{
+ "type": "FeatureCollection",
+ "metadata": {
+  "fonte": "OpenStreetMap / OpenSeaMap seamark:*",
+  "bbox": "42.04,15.40,42.25,15.80",
+  "scaricato": "2026-11-02",
+  "attribuzione": "© OpenStreetMap contributors (ODbL), OpenSeaMap"
+ },
+ "features": [
+  {
+   "type": "Feature",
+   "properties": {
+    "osmId": 1347582730,
+    "tipo": "light_minor",
+    "nome": "Isola San Nicola",
+    "tags": {
+     "seamark:information": "Reserve light range 7M.",
+     "seamark:light:character": "Fl",
+     "seamark:light:colour": "white",
+     "seamark:light:group": "4",
+     "seamark:light:height": "85",
+     "seamark:light:period": "15",
+     "seamark:light:range": "14",
+     "seamark:light:reference": "E 2297",
+     "seamark:light:sequence": "1+(1)+1+(1)+1+(1)+1+(8)",
+     "seamark:name": "Isola San Nicola",
+     "seamark:type": "light_minor",
+     "source": "US NGA Pub. 113. 2010-10-22."
+    }
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     15.509439,
+     42.1235424
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osmId": 1347582731,
+    "tipo": "light_minor",
+    "nome": null,
+    "tags": {
+     "seamark:light:category": "vertical",
+     "seamark:light:character": "F",
+     "seamark:light:colour": "green",
+     "seamark:light:height": "9",
+     "seamark:light:multiple": "2",
+     "seamark:light:range": "3",
+     "seamark:light:reference": "E 2298",
+     "seamark:type": "light_minor",
+     "source": "US NGA Pub. 113. 2010-10-22."
+    }
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     15.5015411,
+     42.118865
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osmId": 1347582732,
+    "tipo": "light_minor",
+    "nome": "Isola Caprara",
+    "tags": {
+     "seamark:light:1:character": "Fl",
+     "seamark:light:1:colour": "white",
+     "seamark:light:1:height": "23",
+     "seamark:light:1:period": "5",
+     "seamark:light:1:range": "8",
+     "seamark:light:1:sector_end": "20",
+     "seamark:light:1:sector_start": "110",
+     "seamark:light:1:sequence": "1+(4)",
+     "seamark:light:reference": "E 2296",
+     "seamark:name": "Isola Caprara",
+     "seamark:type": "light_minor",
+     "source": "US NGA Pub. 113. 2010-10-22."
+    }
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     15.5192342,
+     42.1387735
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osmId": 1347582733,
+    "tipo": "light_minor",
+    "nome": "Isola Pianosa",
+    "tags": {
+     "man_made": "lighthouse",
+     "seamark:light:character": "Fl",
+     "seamark:light:colour": "white",
+     "seamark:light:group": "2",
+     "seamark:light:height": "25",
+     "seamark:light:period": "10",
+     "seamark:light:range": "10",
+     "seamark:light:reference": "E 2300",
+     "seamark:light:sequence": "1+(2)+1+(6)",
+     "seamark:name": "Isola Pianosa",
+     "seamark:type": "light_minor",
+     "source": "US NGA Pub. 113. 2010-10-22."
+    }
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     15.7462087,
+     42.2255731
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osmId": 1484629588,
+    "tipo": "light_minor",
+    "nome": "Punta del Diavolo",
+    "tags": {
+     "height": "17.5",
+     "man_made": "lighthouse",
+     "min_height": "6",
+     "name": "Faro di San Domino",
+     "seamark:light:1:character": "Fl",
+     "seamark:light:1:colour": "white",
+     "seamark:light:1:group": "3",
+     "seamark:light:1:height": "48",
+     "seamark:light:1:period": "10",
+     "seamark:light:1:range": "11",
+     "seamark:light:1:sector_end": "175",
+     "seamark:light:1:sector_start": "300",
+     "seamark:light:1:sequence": "1+(1),1+(1),1+(5)",
+     "seamark:light:reference": "E 2294",
+     "seamark:name": "Punta del Diavolo",
+     "seamark:type": "light_minor",
+     "wikidata": "Q111718560"
+    }
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     15.4774212,
+     42.1064971
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osmId": 2869861154,
+    "tipo": "harbour",
+    "nome": "Porto di San Nicola",
+    "tags": {
+     "leisure": "marina",
+     "name": "Porto di San Nicola",
+     "seamark:harbour:category": "marina",
+     "seamark:type": "harbour"
+    }
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     15.5015602,
+     42.1193515
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osmId": 2870534731,
+    "tipo": "rock",
+    "nome": null,
+    "tags": {
+     "seamark:rock:water_level": "submerged",
+     "seamark:type": "rock"
+    }
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     15.4972982,
+     42.1216557
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osmId": 2870534732,
+    "tipo": "rock",
+    "nome": null,
+    "tags": {
+     "seamark:rock:water_level": "submerged",
+     "seamark:type": "rock"
+    }
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     15.4973569,
+     42.121857
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osmId": 2870534748,
+    "tipo": "rock",
+    "nome": null,
+    "tags": {
+     "seamark:rock:water_level": "submerged",
+     "seamark:type": "rock"
+    }
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     15.4996878,
+     42.1243922
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osmId": 2870534749,
+    "tipo": "rock",
+    "nome": null,
+    "tags": {
+     "seamark:rock:water_level": "submerged",
+     "seamark:type": "rock"
+    }
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     15.5021816,
+     42.1253921
+    ]
+   }
+  },
+  {
+   "type": "Feature",
+   "properties": {
+    "osmId": 3060655247,
+    "tipo": "harbour",
+    "nome": "Porto di San Domino",
+    "tags": {
+     "leisure": "marina",
+     "name": "Porto di San Domino",
+     "seamark:harbour:category": "marina",
+     "seamark:type": "harbour",
+     "wikidata": "Q135443557"
+    }
+   },
+   "geometry": {
+    "type": "Point",
+    "coordinates": [
+     15.4974234,
+     42.1204254
+    ]
+   }
+  }
+ ]
+}

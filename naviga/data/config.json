@@ -1,0 +1,11 @@
+{
+  "zonaBAutorizzata": false,
+  "portoRientroId": "porto-san-domino",
+  "avvisoGrottaMetri": 100,
+  "tolleranzaVelocitaNodi": 0.5,
+  "numeri": {
+    "guardiaCostiera": "1530",
+    "emergenza": "112",
+    "whatsappNoleggio": "393489171971"
+  }
+}

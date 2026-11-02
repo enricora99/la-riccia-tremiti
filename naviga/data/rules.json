@@ -1,0 +1,87 @@
+{
+  "annualita": 2026,
+  "documento": "Disciplinare provvisorio delle attività consentite nell'Area Marina Protetta \"Isole Tremiti\" – Annualità 2026 (Ente Parco Nazionale del Gargano)",
+  "fonteUrl": "https://www.parcogargano.it/wp-content/uploads/2026/04/DISCIPLINARE-TREMITI-2026_def.pdf",
+  "verificato": "Numeri di articolo ricontrollati sul PDF il 2026-11-02",
+  "regole": [
+    {
+      "id": "zona-a-divieto",
+      "testo": {
+        "it": "Zona A (Pianosa): navigazione e accesso vietati alle unità a noleggio.",
+        "en": "Zone A (Pianosa): navigation and access are forbidden for rental boats."
+      },
+      "riferimento": "Disciplinare AMP Isole Tremiti 2026, artt. 11 c. 2 e 17 c. 1",
+      "fonte": "https://www.parcogargano.it/wp-content/uploads/2026/04/DISCIPLINARE-TREMITI-2026_def.pdf"
+    },
+    {
+      "id": "zona-b-autorizzazione",
+      "testo": {
+        "it": "Zona B: le barche a noleggio possono entrare solo con autorizzazione dell'Ente Parco. Questa barca non risulta autorizzata: resta fuori dalla zona B.",
+        "en": "Zone B: rental boats may enter only with an authorisation from the Park Authority. This boat is not listed as authorised: stay outside zone B."
+      },
+      "riferimento": "Disciplinare AMP Isole Tremiti 2026, art. 17 c. 2",
+      "fonte": "https://www.parcogargano.it/wp-content/uploads/2026/04/DISCIPLINARE-TREMITI-2026_def.pdf"
+    },
+    {
+      "id": "zona-b-velocita",
+      "testo": {
+        "it": "Zona B: velocità massima 5 nodi.",
+        "en": "Zone B: maximum speed 5 knots."
+      },
+      "riferimento": "Disciplinare AMP Isole Tremiti 2026, art. 11 c. 8 lett. a (e art. 17 c. 4 lett. a per il noleggio)",
+      "fonte": "https://www.parcogargano.it/wp-content/uploads/2026/04/DISCIPLINARE-TREMITI-2026_def.pdf",
+      "limiteNodi": 5
+    },
+    {
+      "id": "zona-c-300",
+      "testo": {
+        "it": "Zona C entro 300 m dalla costa: velocità massima 5 nodi.",
+        "en": "Zone C within 300 m of the coast: maximum speed 5 knots."
+      },
+      "riferimento": "Disciplinare AMP Isole Tremiti 2026, art. 11 c. 8 lett. b (e art. 17 c. 4 lett. b per il noleggio)",
+      "fonte": "https://www.parcogargano.it/wp-content/uploads/2026/04/DISCIPLINARE-TREMITI-2026_def.pdf",
+      "limiteNodi": 5,
+      "distanzaMetri": 300
+    },
+    {
+      "id": "zona-c-600",
+      "testo": {
+        "it": "Zona C tra 300 e 600 m dalla costa: velocità massima 10 nodi.",
+        "en": "Zone C between 300 and 600 m from the coast: maximum speed 10 knots."
+      },
+      "riferimento": "Disciplinare AMP Isole Tremiti 2026, art. 11 c. 8 lett. b (e art. 17 c. 4 lett. b per il noleggio)",
+      "fonte": "https://www.parcogargano.it/wp-content/uploads/2026/04/DISCIPLINARE-TREMITI-2026_def.pdf",
+      "limiteNodi": 10,
+      "distanzaMetri": 600
+    },
+    {
+      "id": "grotte-divieto",
+      "testo": {
+        "it": "Grotte marine: vietato entrare con le barche a noleggio e con qualsiasi barca a motore. Si guardano solo dall'esterno.",
+        "en": "Sea caves: entry is forbidden for rental boats and for any motorboat. View them from outside only."
+      },
+      "riferimento": "Disciplinare AMP Isole Tremiti 2026, artt. 17 c. 5 e 11 c. 3",
+      "fonte": "https://www.parcogargano.it/wp-content/uploads/2026/04/DISCIPLINARE-TREMITI-2026_def.pdf",
+      "distanzaMetri": 100
+    },
+    {
+      "id": "gavitelli-velocita",
+      "testo": {
+        "it": "Gavitelli: avvicinati e allontanati a non più di 3 nodi.",
+        "en": "Mooring buoys: approach and leave at no more than 3 knots."
+      },
+      "riferimento": "Disciplinare AMP Isole Tremiti 2026, art. 12 c. 10",
+      "fonte": "https://www.parcogargano.it/wp-content/uploads/2026/04/DISCIPLINARE-TREMITI-2026_def.pdf",
+      "limiteNodi": 3
+    },
+    {
+      "id": "gavitelli-noleggio",
+      "testo": {
+        "it": "Gavitelli: i gommoni a noleggio possono ormeggiarsi fino a 4 per gavitello.",
+        "en": "Mooring buoys: up to 4 rental dinghies may moor to the same buoy."
+      },
+      "riferimento": "Disciplinare AMP Isole Tremiti 2026, art. 12 c. 6",
+      "fonte": "https://www.parcogargano.it/wp-content/uploads/2026/04/DISCIPLINARE-TREMITI-2026_def.pdf"
+    }
+  ]
+}
