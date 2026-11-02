@@ -4,6 +4,7 @@ import { parseDms, formatDms } from './coords.ts';
 import { distanceMeters, bearingDeg, speedKnots, courseDeg, cardinal, formatDistance } from './geo.ts';
 import { indexZones, situationAt, isOverSpeed } from './rules.ts';
 import { createAlertTracker } from './alerts.ts';
+import { parseGpx, writeGpx } from './gpx.ts';
 import type { Config, Poi, Rules, Zones } from './types.ts';
 import type { LonLat } from './coords.ts';
 
@@ -156,5 +157,24 @@ describe('attrazioni', () => {
       expect(p.nome.it && p.nome.en && p.descrizione.it && p.descrizione.en).toBeTruthy();
     }
     expect(pois.some((p) => p.id === config.portoRientroId)).toBe(true);
+  });
+});
+
+describe('GPX', () => {
+  it('scrive e rilegge una traccia senza perdite', () => {
+    const pts = [
+      { lonLat: [15.4995, 42.1201] as LonLat, time: Date.parse('2026-07-15T09:30:00Z'), name: 'Porto & partenza' },
+      { lonLat: [15.4991, 42.11728] as LonLat, time: Date.parse('2026-07-15T09:30:02Z') },
+    ];
+    const back = parseGpx(writeGpx(pts, 'prova'));
+    expect(back).toHaveLength(2);
+    expect(back[0].name).toBe('Porto & partenza');
+    expect(back[1].lonLat[1]).toBeCloseTo(42.11728, 6);
+    expect(back[1].time - back[0].time).toBe(2000);
+  });
+  it('la traccia della demo è leggibile e regolare', () => {
+    const pts = parseGpx(readFileSync(new URL('../public/demo/giro-demo.gpx', import.meta.url), 'utf8'));
+    expect(pts.length).toBeGreaterThan(500);
+    for (let i = 1; i < pts.length; i++) expect(pts[i].time).toBeGreaterThan(pts[i - 1].time);
   });
 });

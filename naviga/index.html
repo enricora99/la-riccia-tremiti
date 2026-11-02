@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no" />
+  <title>La Riccia – Naviga le Tremiti</title>
+  <meta name="description" content="Supporto informativo per chi noleggia un gommone alle Isole Tremiti: posizione, zone dell'area marina protetta, attrazioni." />
+  <meta name="theme-color" content="#04212d" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="La Riccia" />
+  <link rel="icon" href="/naviga/icons/icon-192.png" type="image/png" />
+  <link rel="apple-touch-icon" href="/naviga/icons/apple-touch-icon.png" />
+  <link rel="manifest" href="/naviga/manifest.webmanifest" />
+</head>
+<body>
+  <div id="map" aria-label="Mappa" role="application"></div>
+
+  <!-- Velocità, limite e zona del punto in cui ti trovi -->
+  <section class="hud" aria-live="polite">
+    <div class="speed"><b id="speed">–</b><span data-i18n="knots">nodi</span></div>
+    <div class="limit" id="limit" hidden><small data-i18n="limit">limite</small><b id="limit-val"></b></div>
+    <div class="zone"><span id="zone-label" data-i18n="waitingGps">In attesa del GPS…</span><small id="gps-acc"></small></div>
+  </section>
+
+  <div class="alerts" id="alerts" aria-live="assertive"></div>
+  <p class="banner" id="wake-banner" hidden data-i18n="keepScreenOn">Tieni lo schermo acceso: questo telefono non permette all'app di farlo da sola.</p>
+
+  <!-- Rotta in linea retta verso la destinazione scelta -->
+  <section class="target" id="target" hidden>
+    <div class="target-main">
+      <span class="target-name" id="target-name"></span>
+      <span class="target-nums"><b id="target-dist"></b> · <b id="target-bearing"></b></span>
+      <small id="target-note"></small>
+    </div>
+    <button class="icon-btn" id="target-clear" data-i18n-aria="clearTarget" aria-label="Annulla destinazione">✕</button>
+  </section>
+
+  <div class="fabs">
+    <button class="fab" id="btn-compass" data-i18n-aria="compass" aria-label="Bussola" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 5l3 7-3 7-3-7z"/></svg>
+    </button>
+    <button class="fab" id="btn-center" data-i18n-aria="center" aria-label="Centra sulla mia posizione">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="7"/></svg>
+    </button>
+    <button class="fab" id="btn-info" data-i18n-aria="info" aria-label="Regole e informazioni">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>
+    </button>
+  </div>
+
+  <nav class="bar">
+    <button class="bar-btn" id="btn-poi"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg><span data-i18n="attractions">Attrazioni</span></button>
+    <button class="bar-btn" id="btn-port"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v18M7 7h10M5 14c0 4 3 7 7 7s7-3 7-7"/></svg><span data-i18n="backToPort">Rientra al porto</span></button>
+    <button class="bar-btn sos" id="btn-sos"><span class="sos-txt">SOS</span></button>
+  </nav>
+
+  <!-- Pannelli -->
+  <section class="sheet" id="sheet-poi" hidden aria-labelledby="poi-title">
+    <header><h2 id="poi-title" data-i18n="attractions">Attrazioni</h2><button class="icon-btn" data-close aria-label="Chiudi">✕</button></header>
+    <p class="sheet-note" data-i18n="straightLineNote">Distanze e rotte in linea retta: ostacoli, scogli e bagnanti vanno verificati a vista.</p>
+    <ul class="poi-list" id="poi-list"></ul>
+  </section>
+
+  <section class="sheet sheet-sos" id="sheet-sos" hidden aria-labelledby="sos-title">
+    <header><h2 id="sos-title" data-i18n="sosTitle">Emergenza</h2><button class="icon-btn" data-close aria-label="Chiudi">✕</button></header>
+    <div class="sos-pos"><small data-i18n="yourPosition">La tua posizione</small><b id="sos-dec">–</b><b id="sos-dms">–</b></div>
+    <a class="sos-btn red" id="sos-1530" href="tel:1530"><b>1530</b><span data-i18n="coastGuard">Guardia Costiera</span></a>
+    <a class="sos-btn red" id="sos-112" href="tel:112"><b>112</b><span data-i18n="emergency">Numero unico di emergenza</span></a>
+    <a class="sos-btn green" id="sos-wa" target="_blank" rel="noopener"><b>WhatsApp</b><span data-i18n="writeRiccia">Scrivi a La Riccia con la tua posizione</span></a>
+    <p class="sheet-note" data-i18n="sosPrivacy">La posizione lascia il telefono solo se premi WhatsApp e invii il messaggio.</p>
+  </section>
+
+  <section class="sheet" id="sheet-info" hidden aria-labelledby="info-title">
+    <header><h2 id="info-title" data-i18n="rulesTitle">Regole dell'area marina</h2><button class="icon-btn" data-close aria-label="Chiudi">✕</button></header>
+    <div class="legend" id="legend"></div>
+    <ul class="rules" id="rules-list"></ul>
+    <p class="sheet-note" id="zones-note"></p>
+    <div class="info-links">
+      <button class="chip" id="btn-lang">English</button>
+      <a class="chip" href="/naviga/privacy.html" data-i18n="privacy">Privacy</a>
+      <button class="chip" id="btn-disclaimer" data-i18n="disclaimerAgain">Avvertenze</button>
+    </div>
+  </section>
+
+  <!-- Demo -->
+  <div class="demo" id="demo" hidden>
+    <b>DEMO</b>
+    <button class="chip" id="demo-play">⏸</button>
+    <button class="chip" id="demo-rate">×20</button>
+    <span id="demo-progress"></span>
+  </div>
+
+  <!-- Primo avvio: lingua e avvertenza -->
+  <div class="onboard" id="onboard" hidden>
+    <div class="onboard-card">
+      <img src="/naviga/icons/icon-192.png" alt="" width="64" height="64" />
+      <div id="ob-lang">
+        <h1>La Riccia · Naviga</h1>
+        <p>Scegli la lingua · Choose your language</p>
+        <div class="lang-choice"><button class="big-btn" data-lang="it">Italiano</button><button class="big-btn" data-lang="en">English</button></div>
+      </div>
+      <div id="ob-disclaimer" hidden>
+        <h1 data-i18n="disclaimerTitle">Prima di partire</h1>
+        <div class="disclaimer" data-i18n-html="disclaimerText"></div>
+        <button class="big-btn primary" id="ob-accept" data-i18n="accept">Ho capito, accetto</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./app/main.ts"></script>
+</body>
+</html>

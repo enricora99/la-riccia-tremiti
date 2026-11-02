@@ -34,3 +34,7 @@ npm run build
 - `src/fleet.js` — galleria animata della flotta
 
 Se cambi isole o luce dell'apertura, rigenera i poster con `renderStill(w, h)` del mondo 3D (in sviluppo: `createWorld(...).renderStill(1920, 1080)`).
+
+## Web app di navigazione
+
+La PWA per i clienti del noleggio è in [`naviga/`](naviga/README.md), pubblicata sotto `/naviga/`.

@@ -3,3 +3,6 @@ dist
 .vercel
 .DS_Store
 *.log
+test-results/
+playwright-report/
+naviga/e2e/ultimo-stato.png
