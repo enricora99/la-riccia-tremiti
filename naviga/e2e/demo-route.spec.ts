@@ -126,3 +126,35 @@ test('dopo la prima apertura funziona in modalità aereo', async ({ page, contex
   expect(failed, 'richieste fallite offline').toEqual([]);
   await context.setOffline(false);
 });
+
+test('se la linea retta attraversa un’isola: avviso e rotta indicativa che la aggira', async ({ page, context }) => {
+  await context.addInitScript(() => {
+    localStorage.setItem('naviga-lang', 'it');
+    localStorage.setItem('naviga-avvertenza', '1');
+  });
+  await context.setGeolocation({ latitude: 42.1201, longitude: 15.4995, accuracy: 5 }); // davanti al porto
+  await page.goto('/naviga/');
+  await page.waitForFunction(() => (window as any).__naviga?.fixCount >= 1);
+  await page.click('#btn-poi');
+  await expect(page.locator('[data-poi="grotta-viole"] .badge.grey')).toBeVisible();
+  await page.click('[data-poi="grotta-viole"]');
+  await expect(page.locator('#target-warn')).toContainText('attraversa San Domino');
+  await expect(page.locator('#target-bearing')).toContainText('tieni');
+  const path = await page.evaluate(() => (window as any).__naviga.route.path.length);
+  expect(path).toBeGreaterThan(2);
+  if (process.env.SHOT) await page.screenshot({ path: process.env.SHOT });
+
+  // grotta affacciata sulla zona B: la rotta si ferma al punto consentito più vicino
+  await page.click('#target-clear');
+  await page.click('#btn-poi');
+  await page.click('[data-poi="grotta-bue-marino"]');
+  await expect(page.locator('#target-warn')).toContainText('si arriva al massimo a');
+  expect(await page.evaluate(() => (window as any).__naviga.route.approach.toGoalM)).toBeLessThan(450);
+
+  // linea retta libera: nessun avviso
+  await page.click('#target-clear');
+  await page.click('#btn-poi');
+  await page.click('[data-poi="bagno-padre-pio"]');
+  await expect(page.locator('#target-warn')).toBeHidden();
+  await expect(page.locator('#target-note')).toContainText('linea retta');
+});

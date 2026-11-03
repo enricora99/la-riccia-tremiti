@@ -93,9 +93,15 @@ export async function createMap(container: HTMLElement, lang: Lang, data: MapDat
   });
 
   // Linea retta verso la destinazione
+  // linea retta (tratteggiata; grigia se attraversa terra o zone vietate) e rotta indicativa (continua)
+  map.addSource('nav-straight', { type: 'geojson', data: empty() });
+  map.addLayer({ id: 'nav-straight-casing', type: 'line', source: 'nav-straight', paint: { 'line-color': '#ffffff', 'line-width': 6, 'line-opacity': ['case', ['get', 'blocked'], 0.5, 0.9] } });
+  map.addLayer({ id: 'nav-straight', type: 'line', source: 'nav-straight', paint: { 'line-color': ['case', ['get', 'blocked'], '#868e96', '#e94598'], 'line-width': ['case', ['get', 'blocked'], 2, 3], 'line-dasharray': [2, 1.2] } });
   map.addSource('nav-route', { type: 'geojson', data: empty() });
-  map.addLayer({ id: 'nav-route-casing', type: 'line', source: 'nav-route', paint: { 'line-color': '#ffffff', 'line-width': 6, 'line-opacity': 0.9 } });
-  map.addLayer({ id: 'nav-route', type: 'line', source: 'nav-route', paint: { 'line-color': '#e94598', 'line-width': 3, 'line-dasharray': [2, 1.2] } });
+  map.addLayer({ id: 'nav-route-casing', type: 'line', source: 'nav-route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 8 } });
+  map.addLayer({ id: 'nav-route', type: 'line', source: 'nav-route', layout: { 'line-join': 'round', 'line-cap': 'round' }, paint: { 'line-color': '#e94598', 'line-width': 4 } });
+  map.addSource('nav-approach', { type: 'geojson', data: empty() });
+  map.addLayer({ id: 'nav-approach', type: 'circle', source: 'nav-approach', paint: { 'circle-radius': 7, 'circle-color': '#ffffff', 'circle-stroke-color': '#e94598', 'circle-stroke-width': 3 } });
 
   // Precisione del GPS
   map.addSource('nav-accuracy', { type: 'geojson', data: empty() });
@@ -147,14 +153,20 @@ export async function createMap(container: HTMLElement, lang: Lang, data: MapDat
       (map.getSource('nav-accuracy') as maplibregl.GeoJSONSource).setData(accuracyM ? circle(p, accuracyM) : empty());
       if (follow) map.easeTo({ center: p, duration: 600 });
     },
-    setRoute(from: LonLat | null, to: LonLat | null) {
-      (map.getSource('nav-route') as maplibregl.GeoJSONSource).setData(from && to
-        ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [from, to] } }] }
+    setRoute(r: { from: LonLat; to: LonLat; blocked: boolean; path: LonLat[] | null; approach: LonLat | null } | null) {
+      const line = (coords: LonLat[], props: Record<string, unknown> = {}): FeatureCollection => ({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: props, geometry: { type: 'LineString', coordinates: coords } }] });
+      (map.getSource('nav-straight') as maplibregl.GeoJSONSource).setData(r ? line([r.from, r.to], { blocked: r.blocked }) : empty());
+      (map.getSource('nav-route') as maplibregl.GeoJSONSource).setData(r?.blocked && r.path ? line(r.path) : empty());
+      (map.getSource('nav-approach') as maplibregl.GeoJSONSource).setData(r?.approach
+        ? { type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: r.approach } }] }
         : empty());
     },
-    fitTo(a: LonLat, b: LonLat) {
+    fitTo(points: LonLat[], bottomPx = 230) {
       follow = false;
-      map.fitBounds([[Math.min(a[0], b[0]), Math.min(a[1], b[1])], [Math.max(a[0], b[0]), Math.max(a[1], b[1])]], { padding: { top: 190, bottom: 200, left: 50, right: 50 }, maxZoom: 15.5, duration: 800 });
+      const xs = points.map((p) => p[0]), ys = points.map((p) => p[1]);
+      // il pannello in basso copre la mappa: lo spazio libero dipende dalla sua altezza
+      const bottom = Math.min(bottomPx, map.getContainer().clientHeight - 260);
+      map.fitBounds([[Math.min(...xs), Math.min(...ys)], [Math.max(...xs), Math.max(...ys)]], { padding: { top: 180, bottom, left: 40, right: 70 }, maxZoom: 15.5, duration: 800 });
     },
     recenter(p: LonLat | null) {
       follow = true;

@@ -6,10 +6,12 @@ import poisData from '../data/poi.json';
 import configData from '../data/config.json';
 import zonesRaw from '../data/zones.geojson?raw';
 import seamarksRaw from '../data/seamarks.geojson?raw';
+import obstaclesRaw from '../data/obstacles.geojson?raw';
 import { formatDms, formatDecimal, type LonLat } from '../core/coords.ts';
 import { bearingDeg, cardinal, courseDeg, distanceMeters, formatDistance, speedKnots } from '../core/geo.ts';
 import { indexZones, situationAt, type Situation } from '../core/rules.ts';
 import { createAlertTracker, type Alert } from '../core/alerts.ts';
+import { createRouter, type Obstacles, type RouteResult } from '../core/route.ts';
 import type { Config, Lang, Poi, Rules, Zones } from '../core/types.ts';
 import { applyI18n, fmt, getLang, setLang, t } from './i18n.ts';
 import { createMap } from './map.ts';
@@ -45,6 +47,19 @@ let target: Poi | null = null;
 let activeAlerts: Alert[] = [];
 const tracker = createAlertTracker({ caveMeters: config.avvisoGrottaMetri, toleranceKn: config.tolleranzaVelocitaNodi });
 let mapApi: Awaited<ReturnType<typeof createMap>> | null = null;
+
+// Rotta indicativa: il grafo si costruisce alla prima destinazione e si ricalcola ogni ~25 m o 5 s
+let router: ReturnType<typeof createRouter> | null = null;
+const getRouter = () => (router ??= createRouter(JSON.parse(obstaclesRaw) as Obstacles, { zonaBAutorizzata: config.zonaBAutorizzata }));
+let routeCache: { key: string; from: LonLat; at: number; result: RouteResult } | null = null;
+function routeFor(from: LonLat, p: Poi): RouteResult {
+  const key = p.id;
+  if (routeCache && routeCache.key === key && distanceMeters(routeCache.from, from) < 25 && Date.now() - routeCache.at < 5000) return routeCache.result;
+  const result = getRouter().route(from, [p.lon, p.lat]);
+  routeCache = { key, from, at: Date.now(), result };
+  return result;
+}
+let currentRoute: RouteResult | null = null;
 
 // ——— Primo avvio: lingua e avvertenza
 function onboarding(): Promise<void> {
@@ -139,7 +154,7 @@ function renderAlerts() {
 
 function renderTarget() {
   const box = $('#target');
-  if (!target) { box.hidden = true; mapApi?.setRoute(null, null); return; }
+  if (!target) { box.hidden = true; currentRoute = null; mapApi?.setRoute(null); return; }
   const L = t();
   const lang = getLang();
   box.hidden = false;
@@ -149,26 +164,51 @@ function renderTarget() {
     $('#target-dist').textContent = '–';
     $('#target-bearing').textContent = '–';
     $('#target-note').textContent = L.noPosition;
-    mapApi?.setRoute(null, null);
+    $('#target-warn').hidden = true;
+    currentRoute = null;
+    mapApi?.setRoute(null);
     return;
   }
-  const d = distanceMeters(lastFix.lonLat, to);
-  const b = bearingDeg(lastFix.lonLat, to);
-  const fd = formatDistance(d, lang);
-  $('#target-dist').textContent = `${fd.nm} · ${fd.m}`;
-  $('#target-bearing').textContent = `${Math.round(b).toString().padStart(3, '0')}° ${cardinal(b)}`;
-  const notes = [L.lineLabel];
+  const r = routeFor(lastFix.lonLat, target);
+  currentRoute = r;
+  const blocked = r.issues.length > 0;
+  const deg = (b: number) => `${Math.round(b).toString().padStart(3, '0')}° ${cardinal(b)}`;
+  const fmtD = (m: number) => { const f = formatDistance(m, lang); return `${f.nm} · ${f.m}`; };
+  const notes: string[] = [];
+  if (!blocked) {
+    $('#target-dist').textContent = fmtD(r.straightM);
+    $('#target-bearing').textContent = deg(bearingDeg(lastFix.lonLat, to));
+    notes.push(L.lineLabel);
+  } else if (r.path && r.lengthM != null && r.firstLegBearing != null) {
+    $('#target-dist').textContent = fmtD(r.lengthM);
+    $('#target-bearing').textContent = `${L.steer} ${deg(r.firstLegBearing)}`;
+    notes.push(fmt(L.straightVia, { d: formatDistance(r.straightM, lang).nm }));
+  } else {
+    $('#target-dist').textContent = fmtD(r.straightM);
+    $('#target-bearing').textContent = deg(bearingDeg(lastFix.lonLat, to));
+    notes.push(L.lineLabel);
+  }
+  const warn = $('#target-warn');
+  if (blocked) {
+    const first = r.issues[0];
+    const msg = first.kind === 'zonaA' ? L.crossesZoneA : first.kind === 'zonaB' ? L.crossesZoneB : first.nome ? fmt(L.crossesLand, { nome: first.nome }) : L.crossesRock;
+    const extra = !r.path ? L.noRoute : r.approach ? fmt(L.approachNote, { m: Math.round(r.approach.toGoalM) }) : '';
+    warn.textContent = [msg, extra].filter(Boolean).join(' ');
+    warn.classList.toggle('red', !r.path || first.kind !== 'terra');
+    warn.hidden = false;
+    if (r.path) notes.push(L.routeNote);
+  } else warn.hidden = true;
   if (target.accessoNoleggio !== 'consentito') notes.push(L.access[target.accessoNoleggio]);
   if (!target.verificato) notes.push(L.unverified);
   $('#target-note').textContent = notes.join(' · ');
-  mapApi?.setRoute(lastFix.lonLat, to);
+  mapApi?.setRoute({ from: lastFix.lonLat, to, blocked, path: r.path, approach: r.approach?.point ?? null });
 }
 
 function selectTarget(p: Poi | null) {
   target = p;
   closeSheets();
   renderTarget();
-  if (p && lastFix) mapApi?.fitTo(lastFix.lonLat, [p.lon, p.lat]);
+  if (p && lastFix) mapApi?.fitTo([lastFix.lonLat, [p.lon, p.lat], ...(currentRoute?.path ?? [])], $('#target').offsetHeight + 110);
   else if (p) mapApi?.map.easeTo({ center: [p.lon, p.lat], zoom: 14.5 });
 }
 
@@ -181,9 +221,10 @@ function renderPoiList() {
     const fd = d != null ? formatDistance(d, lang) : null;
     const b = d != null && lastFix ? bearingDeg(lastFix.lonLat, [p.lon, p.lat]) : null;
     const access = p.accessoNoleggio !== 'consentito' ? `<em class="badge ${p.accessoNoleggio === 'vietato' ? 'red' : 'orange'}">${L.access[p.accessoNoleggio]}</em>` : '';
+    const around = lastFix && getRouter().route(lastFix.lonLat, [p.lon, p.lat]).issues.length ? `<em class="badge grey">${L.aroundCoast}</em>` : '';
     return `<li><button data-poi="${p.id}">
       <span class="poi-type t-${p.tipo}">${L.type[p.tipo]}</span>
-      <b>${p.nome[lang]}</b>${access}
+      <b>${p.nome[lang]}</b>${access}${around}
       <small>${p.descrizione[lang]}</small>
       <span class="poi-dist">${fd ? `${fd.nm} · ${fd.m} · ${Math.round(b!)}° ${cardinal(b!)}` : ''}</span>
     </button></li>`;
@@ -248,7 +289,7 @@ async function main() {
   renderHud();
 
   // la posizione parte subito, anche prima che la mappa sia pronta
-  keepScreenOn(() => { $('#wake-banner').hidden = false; });
+  keepScreenOn(() => toast(t().keepScreenOn, 8000));
   $('#wake-banner').onclick = () => { $('#wake-banner').hidden = true; };
 
   if (DEMO) {
@@ -309,12 +350,12 @@ async function main() {
 }
 
 let toastTimer = 0;
-function toast(msg: string) {
+function toast(msg: string, ms = 4000) {
   const el = $('#wake-banner');
   el.textContent = msg;
   el.hidden = false;
   clearTimeout(toastTimer);
-  toastTimer = window.setTimeout(() => { el.hidden = true; el.textContent = t().keepScreenOn; }, 4000);
+  toastTimer = window.setTimeout(() => { el.hidden = true; }, ms);
 }
 
 async function registerServiceWorker() {
@@ -324,6 +365,6 @@ async function registerServiceWorker() {
 }
 
 // usato dai test end-to-end per leggere lo stato senza dipendere dal disegno della mappa
-Object.defineProperty(window, '__naviga', { value: { get situation() { return situation; }, get knots() { return knots; }, get alerts() { return activeAlerts; }, get fixCount() { return fixCount; }, get mapReady() { return mapReady; } } });
+Object.defineProperty(window, '__naviga', { value: { get situation() { return situation; }, get knots() { return knots; }, get alerts() { return activeAlerts; }, get fixCount() { return fixCount; }, get mapReady() { return mapReady; }, get route() { return currentRoute; } } });
 
 void main();

@@ -2,7 +2,9 @@
 
 Supporto informativo per chi noleggia un gommone alle Isole Tremiti: posizione e direzione, velocità
 confrontata con il limite del punto in cui ci si trova, zone dell'Area Marina Protetta, attrazioni con distanza
-e rilevamento in linea retta, rientro al porto, SOS. Funziona offline dopo la prima apertura.
+e rilevamento, rotta indicativa quando la linea retta attraversa un'isola o una zona vietata, rientro al porto,
+SOS. Funziona offline dopo la prima apertura. Sul sito è collegata dal menu ("App in mare"), dall'apertura,
+da una sezione dedicata e dal footer, sempre con l'etichetta **anteprima**.
 
 **Non è uno strumento di navigazione.** Le zone sono provvisorie (vedi "Da verificare").
 
@@ -19,6 +21,7 @@ naviga/
     geo.ts       distanza, rilevamento, velocità in nodi (GPS o calcolata tra due fix), direzione di moto
     rules.ts     in che zona sono, che regole valgono, limite di velocità del punto
     alerts.ts    avvisi con isteresi (velocità, zona A, zona B, grotte entro 100 m)
+    route.ts     rotta indicativa: grafo di visibilità attorno a isole e zone vietate + Dijkstra
     gpx.ts       lettura/scrittura GPX senza DOMParser
     types.ts     tipi dei file di data/
     core.test.ts test Vitest
@@ -40,11 +43,32 @@ scripts/       script una tantum (download OSM, costruzione zone, controllo POI,
 | `decreto-1989.json` | Vertici del D.I. 14/07/1989 art. 4 (in gradi-primi-secondi, come nel testo) e costruzione dei poligoni | Trascritto e ricontrollato a mano |
 | `poi.json` | Attrazioni: `id`, `nome`/`descrizione` IT/EN, `tipo`, `lat`, `lon`, `accessoNoleggio` (`consentito` / `solo esterno` / `vietato`), `verificato`, `fonteCoordinate` | OSM, da sostituire con le coordinate della cliente |
 | `land.geojson` | Costa (anelli chiusi di `natural=coastline`) | OSM, `scripts/fetch-osm.ts` |
+| `obstacles.geojson` | Ostacoli per la rotta indicativa: `costa` (con il nome dell'isola), `costa-margine` (costa allargata di 100 m), `zonaA`/`zonaB` e i loro margini di 30 m | Generato da `scripts/build-zones.ts` |
 | `seamarks.geojson` | Segnalamenti nautici `seamark:*` | OSM/OpenSeaMap, `scripts/fetch-osm.ts` |
 
 Come l'app decide il limite in un punto (`core/rules.ts`): zona A → vietato; zona B → vietato se
 `zonaBAutorizzata` è `false`, altrimenti 5 nodi; zona C entro 300 m → 5 nodi; tra 300 e 600 m → 10 nodi;
 oltre 600 m o fuori dall'AMP → nessun limite dell'AMP (l'app lo dice esplicitamente).
+
+## Rotta indicativa
+
+Quando si sceglie una destinazione l'app controlla la linea retta (`core/route.ts`):
+
+- se non tocca terra né zone vietate, mostra la linea retta con distanza e rilevamento;
+- se attraversa un'isola, uno scoglio, la zona A o la zona B (quando `zonaBAutorizzata` è `false`), lo dice
+  ("la linea retta attraversa San Domino") e propone una **rotta indicativa**: la spezzata più corta che resta a
+  circa 100 m dalla costa e fuori dalle zone vietate, con la prua da tenere adesso ("tieni 206° SW");
+- se la destinazione si vede solo da una zona vietata (es. Grotta del Bue Marino con la zona B non autorizzata),
+  la rotta si ferma nel punto consentito più vicino e l'app dice a che distanza è.
+
+Come funziona: grafo di visibilità sui vertici della costa allargata e delle zone vietate (circa 150 nodi,
+calcolato una volta), Dijkstra per ogni richiesta (pochi millisecondi), ricalcolo ogni 25 m o 5 secondi.
+Il primo e l'ultimo tratto possono avvicinarsi alla costa (si parte dal pontile, le attrazioni stanno sulla
+costa) ma non attraversarla. Il margine si cambia in `MARGINE_ROTTA` (`scripts/build-zones.ts`) e si rigenera
+con `npm run naviga:zones`.
+
+Limiti: non conosce fondali, secche, scogli sommersi, boe, gavitelli, altre barche e bagnanti; usa la costa OSM.
+Resta un'indicazione da verificare a vista, ed è scritto nell'app.
 
 ## Aggiornare le regole a ogni nuova annualità del Disciplinare
 
@@ -89,7 +113,8 @@ Font e icone della mappa vengono da [protomaps/basemaps-assets](https://github.c
 ## Offline e PWA
 
 Build separata (`naviga/vite.config.ts`, base `/naviga/`) con `vite-plugin-pwa` (Workbox). Il service worker
-sta in `/naviga/sw.js` e controlla solo `/naviga/`: il sito resta com'è. In precache **27 file, circa 3,9 MB**:
+sta in `/naviga/sw.js` e controlla solo `/naviga/`: il sito resta com'è. In precache **27 file, circa 3,9 MB**
+(la rotta indicativa aggiunge circa 50 kB di dati):
 
 | Voce | Peso |
 |---|---|
@@ -120,13 +145,14 @@ lingua e accettazione dell'avvertenza.
 
 ## Test
 
-- `core/core.test.ts` (Vitest, 21 test): conversioni di coordinate, distanze e rilevamenti, velocità,
-  punto-in-poligono sulle zone, limite di velocità per posizione (anche con zona B autorizzata), avvisi con
-  isteresi, GPX, coerenza dei dati.
+- `core/core.test.ts` e `core/route.test.ts` (Vitest, 28 test): conversioni di coordinate, distanze e
+  rilevamenti, velocità, punto-in-poligono sulle zone, limite di velocità per posizione (anche con zona B
+  autorizzata), avvisi con isteresi, GPX, coerenza dei dati, rotta indicativa (aggira San Domino, non tocca
+  terra, evita la zona B se non autorizzata e la attraversa se autorizzata, punto d'osservazione per il Bue Marino).
 - `e2e/demo-route.spec.ts` (Playwright, Chromium): percorre tutto il giro della demo con la geolocalizzazione
   simulata del browser e verifica che gli avvisi (velocità sotto costa, grotta delle Viole, zona B) compaiano
   nei punti previsti dal core e che non ne compaiano altri; SOS; primo avvio; funzionamento in modalità aereo
-  dopo la prima apertura.
+  dopo la prima apertura; avviso e rotta indicativa quando la linea retta attraversa San Domino.
 
 ## Attribuzioni
 

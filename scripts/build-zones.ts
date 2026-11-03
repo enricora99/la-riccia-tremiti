@@ -12,6 +12,7 @@ import intersect from '@turf/intersect';
 import area from '@turf/area';
 import kinks from '@turf/kinks';
 import booleanPointInPolygon from '@turf/boolean-point-in-polygon';
+import simplify from '@turf/simplify';
 import { parseDms, type LonLat } from '../naviga/core/coords.ts';
 
 type Area = Feature<Polygon | MultiPolygon>;
@@ -85,3 +86,40 @@ for (const ft of out.features.filter((x) => x.geometry.type !== 'LineString')) {
   console.log(`${ft.properties.id.padEnd(20)} ${(area(ft as Area) / 1e6).toFixed(3)} km²`);
 }
 console.log(`zones.geojson: ${(json.length / 1024).toFixed(0)} kB`);
+
+// ——— Ostacoli per la rotta indicativa (naviga/data/obstacles.geojson)
+// costa      = costa OSM leggermente semplificata, con il nome dell'isola: non si attraversa mai
+// *-margine  = costa allargata di MARGINE_ROTTA e zone vietate allargate di 30 m: la rotta ci gira intorno
+// zonaA/zonaB = zone vietate al noleggio (zona B solo se La Riccia non è autorizzata: lo decide l'app)
+const MARGINE_ROTTA = 100; // metri dalla costa
+const ISOLE: [string, LonLat][] = [
+  ['San Domino', [15.4862, 42.1146]], ['San Nicola', [15.509, 42.1231]], ['Caprara', [15.5138, 42.1364]],
+  ['Cretaccio', [15.5, 42.1231]], ['Pianosa', [15.7475, 42.2251]],
+];
+const outer = (f: Area): Area[] => (f.geometry.type === 'Polygon' ? [f.geometry.coordinates] : f.geometry.coordinates)
+  .map((rings) => polygon([rings[0]]) as Area);
+const simple = (f: Area, tol: number) => simplify(f, { tolerance: tol, highQuality: true, mutate: false });
+const ostacoli: Record<string, unknown>[] = [];
+const add = (g: Area, props: Record<string, unknown>) => ostacoli.push({ type: 'Feature', properties: props, geometry: g.geometry });
+for (const f of land.features as Area[]) {
+  const nome = ISOLE.find(([, p]) => booleanPointInPolygon(point(p), f))?.[0] ?? null;
+  add(simple(f, 0.00003), { kind: 'costa', nome });
+}
+const margine = clean(buffer(landAll, MARGINE_ROTTA, { units: 'meters', steps: 12 }) as Area, 'margine costa');
+for (const p of outer(margine)) add(simple(p, 0.00015), { kind: 'costa-margine' });
+const zoneVietate: [string, Area, string][] = [
+  ['zonaA', zonaA, 'zona A – Pianosa'],
+  ['zonaB', and(bCaprara, perimetro, 'B Caprara'), 'zona B – Caprara'],
+  ['zonaB', and(bSanDomino, perimetro, 'B San Domino'), 'zona B – San Domino'],
+];
+for (const [kind, g, nome] of zoneVietate) {
+  add(g, { kind, nome });
+  for (const p of outer(clean(buffer(g, 30, { units: 'meters', steps: 8 }) as Area, `margine ${nome}`))) add(simple(p, 0.00008), { kind: `${kind}-margine`, nome });
+}
+const ostJson = JSON.stringify({ type: 'FeatureCollection', metadata: { margineRottaMetri: MARGINE_ROTTA, script: 'scripts/build-zones.ts' }, features: ostacoli },
+  (k, v) => (typeof v === 'number' && k !== 'margineRottaMetri' ? Math.round(v * 1e6) / 1e6 : v));
+writeFileSync('naviga/data/obstacles.geojson', ostJson);
+const vcount = (kind: string) => ostacoli.filter((o) => (o.properties as { kind: string }).kind === kind)
+  .reduce((n, o) => n + JSON.stringify((o as { geometry: unknown }).geometry).split('],[').length, 0);
+console.log(`obstacles.geojson: ${(ostJson.length / 1024).toFixed(0)} kB · vertici costa ${vcount('costa')}, margine ${vcount('costa-margine')}, zone ${vcount('zonaA-margine') + vcount('zonaB-margine')}`);
+console.log('isole riconosciute:', ostacoli.map((o) => (o.properties as { nome?: string }).nome).filter(Boolean).join(', '));

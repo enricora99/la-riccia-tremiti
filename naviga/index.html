@@ -23,14 +23,17 @@
     <div class="zone"><span id="zone-label" data-i18n="waitingGps">In attesa del GPS…</span><small id="gps-acc"></small></div>
   </section>
 
-  <div class="alerts" id="alerts" aria-live="assertive"></div>
-  <p class="banner" id="wake-banner" hidden data-i18n="keepScreenOn">Tieni lo schermo acceso: questo telefono non permette all'app di farlo da sola.</p>
+  <div class="top-stack">
+    <div class="alerts" id="alerts" aria-live="assertive"></div>
+    <p class="banner" id="wake-banner" hidden data-i18n="keepScreenOn">Tieni lo schermo acceso: questo telefono non permette all'app di farlo da sola.</p>
+  </div>
 
   <!-- Rotta in linea retta verso la destinazione scelta -->
   <section class="target" id="target" hidden>
     <div class="target-main">
       <span class="target-name" id="target-name"></span>
       <span class="target-nums"><b id="target-dist"></b> · <b id="target-bearing"></b></span>
+      <p class="target-warn" id="target-warn" hidden></p>
       <small id="target-note"></small>
     </div>
     <button class="icon-btn" id="target-clear" data-i18n-aria="clearTarget" aria-label="Annulla destinazione">✕</button>
